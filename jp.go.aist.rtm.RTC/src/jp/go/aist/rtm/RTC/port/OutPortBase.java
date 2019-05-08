@@ -1193,11 +1193,6 @@ public abstract class OutPortBase extends PortBase {
         this.addConnectorDataListener(type,listener,true);
     }
 
-    public void addConnectorDataListener(int type,
-                                        ConnectorDataListener listener) {
-        this.addConnectorDataListener(type,listener,true);
-    }
-
     /**
      * {@.ja ConnectorDataListener リスナを削除する}
      * {@.en Removes ConnectorDataListener type listener}
