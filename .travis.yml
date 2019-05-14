@@ -2,8 +2,6 @@ language: java
 
 sudo: required
 
-install: ant deps
-
 jdk:
   - oraclejdk8
   - oraclejdk9
