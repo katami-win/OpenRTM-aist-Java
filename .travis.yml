@@ -1,0 +1,27 @@
+language: java
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  # install newer docker
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+  # enable buildkit (only 18.09 or later)
+  ## - export DOCKER_BUILDKIT=1
+
+addons:
+  apt:
+    packages:
+      - default-jdk-headless
+
+env:
+  - TARGET_DIST=ubuntu TARGET_VER=1804
+  - TARGET_DIST=ubuntu TARGET_VER=1604
+  - TARGET_DIST=debian TARGET_VER=8
+
+script:
+  - bash buildRTC.sh
+  
