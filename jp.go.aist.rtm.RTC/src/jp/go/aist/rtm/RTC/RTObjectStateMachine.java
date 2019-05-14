@@ -419,6 +419,7 @@ public class RTObjectStateMachine {
             }
             return;
         }
+	// call Object reference
         if (!m_dfc) { 
             return; 
         }
