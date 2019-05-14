@@ -1,21 +1,15 @@
 language: java
+
 sudo: required
 
-services:
-  - docker
+install: ant deps
 
-before_install:
-  # install newer docker
-  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  - sudo apt-get update
-  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
-  # enable buildkit (only 18.09 or later)
-  ## - export DOCKER_BUILDKIT=1
-
-addons:
-  apt:
-    packages:
-      - default-jdk-headless
+jdk:
+  - oraclejdk8
+  - oraclejdk9
+  - openjdk8
+  - openjdk9
+  - openjdk10
 
 env:
   - TARGET_DIST=ubuntu TARGET_VER=1804
