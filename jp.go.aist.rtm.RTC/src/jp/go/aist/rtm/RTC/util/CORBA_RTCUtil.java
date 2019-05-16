@@ -1182,6 +1182,9 @@ public class CORBA_RTCUtil {
      */
     public static boolean already_connected(PortService localport, 
             PortService otherport){
+        if(localport._is_equivalent(otherport)){
+            return false;
+        }
         ConnectorProfileListHolder conprof =
                 new ConnectorProfileListHolder();
         conprof.value = localport.get_connector_profiles();
