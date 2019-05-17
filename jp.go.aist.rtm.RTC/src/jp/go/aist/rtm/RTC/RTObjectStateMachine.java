@@ -408,6 +408,18 @@ public class RTObjectStateMachine {
      *
      */
     public void onExecute(final StateHolder<LifeCycleState> st){
+        if (isNextState(LifeCycleState.ERROR_STATE))
+        {
+            return; 
+        }
+	// call Servant
+        if (m_rtobjPtr != null) {
+            if (m_rtobjPtr.on_execute(m_id) != ReturnCode_t.RTC_OK) {
+                m_sm.goTo(LifeCycleState.ERROR_STATE);
+            }
+            return;
+        }
+	// call Object reference
         if (!m_dfc) { 
             return; 
         }
@@ -421,6 +433,10 @@ public class RTObjectStateMachine {
      *
      */
     public void onStateUpdate(final StateHolder<LifeCycleState> st){
+        if (isNextState(LifeCycleState.ERROR_STATE))
+        {
+            return; 
+        }
         // call Servant
         if (m_rtobjPtr != null) {
             if (m_rtobjPtr.on_state_update(m_id) != ReturnCode_t.RTC_OK) {
