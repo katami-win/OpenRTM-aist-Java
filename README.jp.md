@@ -1,4 +1,4 @@
-これは OpenRTM-aist-Java のリリースバージョン 1.1.2 です。  
+これは OpenRTM-aist-Java のリリースバージョン 2.0.0 です。  
 OpenRTM-aist-Java はデュアルライセンスのオープンソースのRTミドルウエアです。  
 
 OpenRTM の設定、ビルド、インストールおよび RTコンポーネントの作成を行う前に、  
