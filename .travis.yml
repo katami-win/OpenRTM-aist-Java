@@ -1,15 +1,15 @@
+sudo: false
+dist: xenial
 language: java
 
-sudo: required
+addons:
+  apt:
+    packages:
+    - ant
 
 jdk:
-  - oraclejdk8
+#  - oraclejdk8
   - openjdk8
-
-env:
-  - TARGET_DIST=ubuntu TARGET_VER=1804
-  - TARGET_DIST=ubuntu TARGET_VER=1604
-  - TARGET_DIST=debian TARGET_VER=8
 
 script:
   - bash buildRTC.sh
