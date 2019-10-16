@@ -518,7 +518,7 @@ public class NVUtilTest extends TestCase {
         anyValue = ORBUtil.getOrb().create_any();
         anyValue.insert_string(str);
         nvlist.value[1].value = anyValue;
-System.out.println("** 191016 **");        
+
         result = NVUtil.appendStringValue(nvlist, "string", "stvalue");
  
         String retstr;
