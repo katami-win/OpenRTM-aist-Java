@@ -7,6 +7,7 @@ import java.util.Vector;
 import junit.framework.TestCase;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.ORB;
 
 import RTC.ComponentProfile;
 import RTC.ComponentProfileListHolder;
@@ -16,9 +17,16 @@ import RTC.ConnectorProfileHolder;
 import RTC.ExecutionContext;
 import RTC.ExecutionContextHelper;
 import RTC.ExecutionContextListHolder;
+import RTC.ExecutionContextProfile;
 import RTC.ExecutionContextService;
+import RTC.ExecutionContextServiceHelper;
+import RTC.ExecutionContextServicePOA;
 import RTC.ExecutionContextServiceListHolder;
+import RTC.ExecutionKind;
+import RTC.LifeCycleState;
 import RTC.PortService;
+import RTC.PortServiceHelper;
+import RTC.PortServicePOA;
 import RTC.PortInterfaceProfile;
 import RTC.PortInterfaceProfileListHolder;
 import RTC.PortServiceListHolder;
@@ -26,6 +34,7 @@ import RTC.PortProfile;
 import RTC.PortProfileListHolder;
 import RTC.RTObject;
 import RTC.RTCListHolder;
+import RTC.ReturnCode_t;
 
 import _SDOPackage.NVListHolder;
 import _SDOPackage.NameValue;
@@ -40,6 +49,8 @@ import jp.go.aist.rtm.RTC.port.PortAdmin;
 import jp.go.aist.rtm.RTC.Manager;
 import jp.go.aist.rtm.RTC.executionContext.ExecutionContextBase;
 
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
 
 /**
 * CORBA ユーティリティクラス　テスト
@@ -55,15 +66,123 @@ public class CORBA_SeqUtilTest extends TestCase {
     ExecutionContextServiceListHolder ECservices = new ExecutionContextServiceListHolder();
     SDOListHolder SDOs = new SDOListHolder();
     OrganizationListHolder Orgs = new OrganizationListHolder();
+    private ORB m_pORB;
+    private POA m_pPOA;
 
     private short  st, rst;
     private int   lg, rlg;
     private float  ft, rft;
     private double dl, rdl;
 
+    public class PSMock extends  PortServicePOA {
+        public PSMock() {
+            try {
+                java.util.Properties props = new java.util.Properties();
+                POA poa = POAHelper.narrow(ORB.init(new String[0], props).resolve_initial_references("RootPOA"));
+                byte[] id = poa.activate_object(this);
+                org.omg.CORBA.Object ref = poa.id_to_reference(id);
+                m_ref = PortServiceHelper.narrow(ref);
+            } catch (Exception e) {
+                e.printStackTrace(); // system error
+            }
+        }
+        public PortService getPortRef() {
+            return m_ref;
+        }
+        protected PortService m_ref;
+        public PortProfile get_port_profile (){
+            return new PortProfile();
+        }
+        public ConnectorProfile[] get_connector_profiles (){
+            return new ConnectorProfile[1];
+        }
+        public ConnectorProfile get_connector_profile (String connector_id){
+            return new ConnectorProfile();
+        }
+        public ReturnCode_t connect (ConnectorProfileHolder connector_profile){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t disconnect (String connector_id){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t disconnect_all (){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t notify_connect (ConnectorProfileHolder connector_profile){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t notify_disconnect (String connector_id){
+            return ReturnCode_t.RTC_OK;
+        }
+    }
+    public class ECMock extends  ExecutionContextServicePOA {
+        public ECMock() {
+            super();
+            try {
+                java.util.Properties props = new java.util.Properties();
+                POA poa = POAHelper.narrow(ORB.init(new String[0], props).resolve_initial_references("RootPOA"));
+                byte[] id = poa.activate_object(this);
+                org.omg.CORBA.Object ref = poa.id_to_reference(id);
+                m_ref = ExecutionContextServiceHelper.narrow(ref);
+            } catch (Exception e) {
+                e.printStackTrace(); // system error
+            }
+        }
+        public ExecutionContextService getRef() {
+            return m_ref;
+        }
+        public ExecutionContextProfile get_profile() {
 
+            return m_profile;
+        }
+        public boolean is_running () {
+            return false;
+        }
+        public ReturnCode_t start () {
+            return ReturnCode_t.PRECONDITION_NOT_MET;
+        }
+        public ReturnCode_t stop () {
+            return ReturnCode_t.PRECONDITION_NOT_MET;
+        }
+        public double get_rate () {
+            return 1.0;
+        }
+        public ReturnCode_t set_rate (double rate){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t add_component (RTC.LightweightRTObject comp){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t remove_component (RTC.LightweightRTObject comp){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t activate_component (RTC.LightweightRTObject comp){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t deactivate_component (RTC.LightweightRTObject comp){
+            return ReturnCode_t.RTC_OK;
+        }
+        public ReturnCode_t reset_component (RTC.LightweightRTObject comp){
+            return ReturnCode_t.RTC_OK;
+        }
+        public LifeCycleState get_component_state (RTC.LightweightRTObject comp){
+            return LifeCycleState.INACTIVE_STATE;
+        }
+        public ExecutionKind get_kind (){
+            return ExecutionKind.PERIODIC;
+        }
+        protected ExecutionContextProfile m_profile = new ExecutionContextProfile();
+        protected ExecutionContextService m_ref;
+    }
     protected void setUp() throws Exception {
         super.setUp();
+        java.util.Properties props = new java.util.Properties();
+        props.put("org.omg.CORBA.ORBInitialPort", "2809");
+        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        this.m_pORB = ORB.init(new String[0], props);
+        this.m_pPOA = org.omg.PortableServer.POAHelper.narrow(
+                this.m_pORB.resolve_initial_references("RootPOA"));
+        this.m_pPOA.the_POAManager().activate();
     }
     protected void setUpNVList() {
         NameValue nv0 = new NameValue();
@@ -157,16 +276,16 @@ public class CORBA_SeqUtilTest extends TestCase {
     }
 
     protected void setUpPortServiceList() {
-        PortService[] pservice0 = new PortService[1];
-        PortService[] pservice1 = new PortService[1];
-        PortService[] pservice2 = new PortService[1];
-        PortService[] pservice3 = new PortService[1];
+        PortService pservice0 = new PSMock().getPortRef();
+        PortService pservice1 = new PSMock().getPortRef();
+        PortService pservice2 = new PSMock().getPortRef();
+        PortService pservice3 = new PSMock().getPortRef();
         Pservices.value = new PortService[4];
 
-        Pservices.value[0] = pservice0[0];
-        Pservices.value[1] = pservice1[0];
-        Pservices.value[2] = pservice2[0];
-        Pservices.value[3] = pservice3[0];
+        Pservices.value[0] = pservice0;
+        Pservices.value[1] = pservice1;
+        Pservices.value[2] = pservice2;
+        Pservices.value[3] = pservice3;
     }
 
     protected void setUpPortInterfaceProfileList() {
@@ -198,16 +317,16 @@ public class CORBA_SeqUtilTest extends TestCase {
     }
 
     protected void setUpExecutionContextServiceList() {
-        ExecutionContextService[] ecservice0 = new ExecutionContextService[1];
-        ExecutionContextService[] ecservice1 = new ExecutionContextService[1];
-        ExecutionContextService[] ecservice2 = new ExecutionContextService[1];
-        ExecutionContextService[] ecservice3 = new ExecutionContextService[1];
+        ExecutionContextService ecservice0 = new ECMock().getRef();
+        ExecutionContextService ecservice1 = new ECMock().getRef();
+        ExecutionContextService ecservice2 = new ECMock().getRef();
+        ExecutionContextService ecservice3 = new ECMock().getRef();
         ECservices.value = new ExecutionContextService[4];
 
-        ECservices.value[0] = ecservice0[0];
-        ECservices.value[1] = ecservice1[0];
-        ECservices.value[2] = ecservice2[0];
-        ECservices.value[3] = ecservice3[0];
+        ECservices.value[0] = ecservice0;
+        ECservices.value[1] = ecservice1;
+        ECservices.value[2] = ecservice2;
+        ECservices.value[3] = ecservice3;
     }
 
     protected void setUpSDOList() {
@@ -247,11 +366,9 @@ public class CORBA_SeqUtilTest extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_find_ExecutionContextService() {
         setUpExecutionContextServiceList();
         int index;
-
         index = CORBA_SeqUtil.find(ECservices, new findFuncECservice(ECservices.value[3]));
         assertEquals(3, index);
         index = CORBA_SeqUtil.find(ECservices, new findFuncECservice(ECservices.value[2]));
@@ -264,11 +381,11 @@ public class CORBA_SeqUtilTest extends TestCase {
         ExecutionContextServiceListHolder lh = new ExecutionContextServiceListHolder();
         lh.value = new ExecutionContextService[1];
         ExecutionContextService[] obj0 = new ExecutionContextService[1];
+        obj0[0] = new ECMock().getRef();
         lh.value[0] = obj0[0];
         index = CORBA_SeqUtil.find(ECservices, new findFuncECservice(lh.value[0]));
         assertEquals(-1, index);
     }
-*/
     /**
      * <p>ConnectorProfileオブジェクトシーケンスからのオブジェクト取得チェック
      * <ul>
@@ -322,11 +439,9 @@ public class CORBA_SeqUtilTest extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_find_PortService() {
         setUpPortServiceList();
         int index;
-
         index = CORBA_SeqUtil.find(Pservices, new findFuncPortService(Pservices.value[3]));
         assertEquals(3, index);
         index = CORBA_SeqUtil.find(Pservices, new findFuncPortService(Pservices.value[2]));
@@ -339,11 +454,11 @@ public class CORBA_SeqUtilTest extends TestCase {
         PortServiceListHolder lh = new PortServiceListHolder();
         lh.value = new PortService[1];
         PortService[] obj0 = new PortService[1];
+        obj0[0] = new PSMock().getPortRef();
         lh.value[0] = obj0[0];
         index = CORBA_SeqUtil.find(Pservices, new findFuncPortService(lh.value[0]));
         assertEquals(-1, index);
     }
-*/
     /**
      * <p>NameValueオブジェクトシーケンスからのオブジェクト取得チェック
      * <ul>
@@ -1320,7 +1435,6 @@ public class CORBA_SeqUtilTest extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_erase_if_PortService() {
         setUpPortServiceList();
         int index, cnt;
@@ -1331,6 +1445,7 @@ public class CORBA_SeqUtilTest extends TestCase {
         PortServiceListHolder lh = new PortServiceListHolder();
         lh.value = new PortService[1];
         PortService[] obj0 = new PortService[1];
+        obj0[0] = new PSMock().getPortRef();
         lh.value[0] = obj0[0];
         CORBA_SeqUtil.erase_if(Pservices, new findFuncPortService(lh.value[0]));
         //after count
@@ -1341,7 +1456,6 @@ public class CORBA_SeqUtilTest extends TestCase {
         //after count
         assertEquals( (cnt-1), Pservices.value.length);
     }
-*/
     /**
      * <p>NameValueオブジェクトシーケンスからのオブジェクト削除チェック
      * <ul>
@@ -2207,28 +2321,25 @@ public class CORBA_SeqUtilTest extends TestCase {
         private String m_name;
     }
 
-/*
     class findFuncPortService implements equalFunctor {
         public findFuncPortService(final PortService obj) {
             m_obj = obj;
         }
         public boolean equalof(final Object obj) {
-            return m_obj.equals(((PortServiceListHolder)obj).value);
+            return m_obj.equals((PortService)obj);
         }
         private PortService m_obj;
     }
-*/
-/*
+
     class findFuncECservice implements equalFunctor {
         public findFuncECservice(final ExecutionContextService obj) {
             m_obj = obj;
         }
         public boolean equalof(final Object obj) {
-            return m_obj.equals(((ExecutionContextService)obj).value);
+            return m_obj.equals((ExecutionContextService)obj);
         }
         private ExecutionContextService m_obj;
     }
-*/
     class findFuncInstance_name implements equalFunctor {
         public findFuncInstance_name(final String name) {
             m_name = name;
