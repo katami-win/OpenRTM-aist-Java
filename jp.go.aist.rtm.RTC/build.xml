@@ -736,16 +736,34 @@
 				<pathelement location="${env.JUNIT_HOME}/junit.jar"/>
 				<pathelement location="${env.ANT_HOME}/lib/ant-junit.jar"/>
 			</classpath>
+			<test name="jp.go.aist.rtm.RTC.ConfigAdminTest"/>
+			<test name="jp.go.aist.rtm.RTC.ConfigTest"/>
+			<test name="jp.go.aist.rtm.RTC.DefaultConfigurationTest"/>
+			<test name="jp.go.aist.rtm.RTC.NamingOnCorbaTest"/>
+			<test name="jp.go.aist.rtm.RTC.ObjectManagerTests"/>
+			<test name="jp.go.aist.rtm.RTC.RTObjectRefTest"/>
+			<test name="jp.go.aist.rtm.RTC.TimeMeasureTest"/>
+			<test name="jp.go.aist.rtm.RTC.buffer.NullBufferTest"/>
+			<test name="jp.go.aist.rtm.RTC.buffer.RingBufferTest"/>
+			<test name="jp.go.aist.rtm.RTC.executionContext.ObjectManagerTest"/>
+			<test name="jp.go.aist.rtm.RTC.log.LogBufTimeTest"/>
+			<test name="jp.go.aist.rtm.RTC.port.CorbaConsumerTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.AdjustedClockTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.CORBA_SeqUtilTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.ConnectorProfileFactoryTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.DataHolderTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.DataRefTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.NVUtilTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.PortProfileFactoryTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.PortServiceListHolderFactoryTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.PropertiesTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.TimeValueTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.TimerTest"/>
+			<test name="jp.go.aist.rtm.RTC.util.TypeCastTest"/>
 			<!--
 			<test name="jp.go.aist.rtm.AllTest110"/>
-			<test name="jp.go.aist.rtm.RTC.FactoryTest"/>
-			<test name="jp.go.aist.rtm.RTC.StateMachineTests"/>
-			<test name="jp.go.aist.rtm.RTC.util.CORBA_RTCUtilTest"/>
 			-->
-			<test name="jp.go.aist.rtm.RTC.NamingManagerTest"/>
 			<!--
-			<test name="jp.go.aist.rtm.RTC.ExtendedFsmServiceProviderTest"/>
-			<test name="jp.go.aist.rtm.RTC.RTC.ComponentObserverConsumerTest"/>
 			<batchtest todir="${build.dir.test}/reports">
 				<fileSet dir="${build.dir.test}">
 					<include name="jp/go/aist/rtm/RTC/*Tests.class" />
