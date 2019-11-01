@@ -375,7 +375,7 @@ public class ManagerTest extends TestCase {
         assertNotNull(m_mgr.getPOA());
         
         // 初期化後すぐにterminate()を呼出し、正常に終了できるか？
-        m_mgr.terminate();
+        m_mgr.terminate(0.0);
         try {
             Thread.sleep(200);
         } catch (InterruptedException e) {
@@ -404,7 +404,7 @@ public class ManagerTest extends TestCase {
         assertTrue(m_mgr.activateManager());
         
         // active化の後でterminate()を呼出し、正常に終了できるか？
-        m_mgr.terminate();
+        m_mgr.terminate(0.0);
         try {
             Thread.sleep(200);
         } catch (InterruptedException e) {
@@ -839,7 +839,7 @@ public class ManagerTest extends TestCase {
         // コンポーネント生成を試みて、意図どおりNULLで戻るか？
         RTObject_impl comp = mgr2.createComponent("DataFlowComponentFactory");
         assertNull(comp);
-        m_mgr.terminate();
+        m_mgr.terminate(0.0);
     }
 
     /**
@@ -1192,7 +1192,7 @@ public class ManagerTest extends TestCase {
         assertNotNull(manager.m_terminator);
         assertNotNull(manager.m_timer);
         //
-        manager.terminate();
+        manager.terminate(0.0);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {

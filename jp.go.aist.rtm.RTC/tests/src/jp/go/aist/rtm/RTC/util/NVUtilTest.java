@@ -5,6 +5,7 @@ import java.util.HashMap;
 import junit.framework.TestCase;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.TCKind;
 
 import _SDOPackage.NVListHolder;
 import _SDOPackage.NameValue;
@@ -145,7 +146,14 @@ public class NVUtilTest extends TestCase {
         
         String getname = nv.name;
         assertEquals(name, getname);
-        String getvalue = nv.value.extract_wstring();
+        String getvalue;
+        if( nv.value.type().kind().value() == 
+                TCKind.tk_wstring.value()){ 
+            getvalue = nv.value.extract_wstring();
+        }
+        else{
+            getvalue = nv.value.extract_string();
+        }
         assertEquals(value, getvalue);
     }
     
@@ -233,7 +241,15 @@ public class NVUtilTest extends TestCase {
         Properties prop = new Properties(mProp);
         NVUtil.copyFromProperties(nvlist, prop);
         
-        final String getval = nvlist.value[0].value.extract_wstring();
+        //final String getval = nvlist.value[0].value.extract_wstring();
+        String getval;
+        if( nvlist.value[0].value.type().kind().value() == 
+                TCKind.tk_wstring.value()){ 
+            getval = nvlist.value[0].value.extract_wstring();
+        }
+        else{
+            getval = nvlist.value[0].value.extract_string();
+        }
         String setstr, getstr;
         setstr = "potr-type";
         getstr = nvlist.value[0].name;
@@ -502,22 +518,40 @@ public class NVUtilTest extends TestCase {
         anyValue = ORBUtil.getOrb().create_any();
         anyValue.insert_string(str);
         nvlist.value[1].value = anyValue;
-        
+
         result = NVUtil.appendStringValue(nvlist, "string", "stvalue");
  
         String retstr;
-        retstr = nvlist.value[1].value.extract_wstring();
+        if( nvlist.value[1].value.type().kind().value() == 
+                TCKind.tk_wstring.value()){ 
+            retstr = nvlist.value[1].value.extract_wstring();
+        }
+        else{
+            retstr = nvlist.value[1].value.extract_string();
+        }
         assertEquals(true, result);
         assertEquals("test,stvalue", retstr);
 
         result = NVUtil.appendStringValue(nvlist, "string", "stvalue");
         
-        retstr = nvlist.value[1].value.extract_wstring();
+        if( nvlist.value[1].value.type().kind().value() == 
+                TCKind.tk_wstring.value()){ 
+            retstr = nvlist.value[1].value.extract_wstring();
+        }
+        else{
+            retstr = nvlist.value[1].value.extract_string();
+        }
         assertEquals("test,stvalue", retstr);
 
         result = NVUtil.appendStringValue(nvlist, "long", "stvalue");
         
-        retstr = nvlist.value[2].value.extract_wstring();
+        if( nvlist.value[2].value.type().kind().value() == 
+                TCKind.tk_wstring.value()){ 
+            retstr = nvlist.value[2].value.extract_wstring();
+        }
+        else{
+            retstr = nvlist.value[2].value.extract_string();
+        }
         assertEquals("long",nvlist.value[2].name);
         assertEquals("stvalue", retstr);
     }
@@ -575,7 +609,6 @@ public class NVUtilTest extends TestCase {
         nvlist2.value[1].value = anyValue;
         
         NVUtil.append(nvlist2, nvlist1);
-        
         assertEquals(5, nvlist2.value.length);
         assertEquals("short", nvlist2.value[3].name);
         assertEquals(1, nvlist2.value[3].value.extract_short());
