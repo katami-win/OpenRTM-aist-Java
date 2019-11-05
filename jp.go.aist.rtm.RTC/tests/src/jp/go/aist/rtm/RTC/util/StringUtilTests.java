@@ -201,7 +201,7 @@ public class StringUtilTests extends TestCase {
      * <li>先頭２文字が「\\」の場合、絶対パスと判定されるか？</li>
      * </ul>
      */
-    void test_isAbsolutePath()
+    public void test_isAbsolutePath()
     {
         // (1) 先頭文字が「/」の場合、絶対パスと判定されるか？
         assertEquals(true, StringUtil.isAbsolutePath("/usr/local/lib"));
