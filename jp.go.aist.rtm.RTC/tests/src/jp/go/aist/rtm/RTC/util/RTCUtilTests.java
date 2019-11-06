@@ -76,56 +76,6 @@ public class RTCUtilTests extends TestCase {
     };
 
 
-//class FiniteStateMachineComponentMock
-//    : public virtual POA_RTC::FiniteStateMachineComponent
-//{
-//    // RTC::_impl_ComponentAction
-//    virtual RTC::UniqueId attach_executioncontext(RTC::_objref_ExecutionContext*) { return RTC::UniqueId(0); }
-//    virtual RTC::ReturnCode_t detach_executioncontext(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_initialize() { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_finalize() { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_startup(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_shutdown(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_activated(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_deactivated(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_aborting(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_error(RTC::UniqueId) { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t on_reset(RTC::UniqueId) { return RTC::RTC_OK; }
-//    
-//    // RTC::_impl_LightweightRTObject
-//    virtual RTC::ReturnCode_t initialize() { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t finalize() { return RTC::RTC_OK; }
-//    virtual RTC::ReturnCode_t exit() { return RTC::RTC_OK; }
-//    virtual CORBA::Boolean is_alive() { return true; }
-//    virtual RTC::ExecutionContextList* get_contexts() { return NULL; }
-//    virtual RTC::_objref_ExecutionContext* get_context(RTC::UniqueId) { return NULL; }
-//    
-//    // SDOPackage::_impl_SDOSystemElement
-//    virtual SDOPackage::OrganizationList* get_owned_organizations() { return NULL; }
-//    
-//    // SDOPackage::_impl_SDO
-//    virtual char* get_sdo_id() { return NULL; }
-//    virtual char* get_sdo_type() { return NULL; }
-//    virtual SDOPackage::DeviceProfile* get_device_profile() { return NULL; }
-//    virtual SDOPackage::ServiceProfileList* get_service_profiles() { return NULL; }
-//    virtual SDOPackage::ServiceProfile* get_service_profile(const char*) { return NULL; }
-//    virtual SDOPackage::_objref_SDOService* get_sdo_service(const char*) { return NULL; }
-//    virtual SDOPackage::_objref_Configuration* get_configuration() { return NULL; }
-//    virtual SDOPackage::_objref_Monitoring* get_monitoring() { return NULL; }
-//    virtual SDOPackage::OrganizationList* get_organizations() { return NULL; }
-//    virtual SDOPackage::NVList* get_status_list() { return NULL; }
-//    virtual CORBA::Any* get_status(const char*) { return NULL; }
-//    
-//    // RTC::_impl_RTObject
-//    virtual RTC::ComponentProfile* get_component_profile() { return NULL; }
-//    virtual RTC::PortList* get_ports() { return NULL; }
-//    virtual RTC::ExecutionContextServiceList* get_execution_context_services() { return NULL; }
-//    
-//    // RTC::_impl_FsmParticipantAction
-//    virtual RTC::ReturnCode_t on_action(RTC::UniqueId) { return RTC::RTC_OK; }
-//};
-//
-
     class FsmObjectMock extends FsmObjectPOA {
         public ReturnCode_t send_stimulus(String ids, int id) { return ReturnCode_t.RTC_OK; }
     };
