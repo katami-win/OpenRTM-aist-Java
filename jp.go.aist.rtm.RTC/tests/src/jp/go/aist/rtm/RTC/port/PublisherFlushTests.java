@@ -2,15 +2,19 @@ package jp.go.aist.rtm.RTC.port;
 
 import java.util.Vector;
 
+import org.omg.CORBA.ORB;
+
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
-
+import com.sun.corba.se.impl.encoding.EncapsOutputStream;
 
 import OpenRTM.CdrDataHolder;
 
+import jp.go.aist.rtm.RTC.PublisherBaseFactory;
 import jp.go.aist.rtm.RTC.buffer.RingBuffer;
 import jp.go.aist.rtm.RTC.buffer.BufferBase;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherFlush;
+import jp.go.aist.rtm.RTC.port.publisher.PublisherBase;
 import jp.go.aist.rtm.RTC.util.Properties;
 import jp.go.aist.rtm.RTC.util.DataRef;
 import jp.go.aist.rtm.RTC.util.ORBUtil;
@@ -81,7 +85,6 @@ public class PublisherFlushTests extends TestCase {
       private CdrDataHolder  m_put_data;
   };
 
-/*
   class MockConsumer implements InPortConsumer {
         public MockConsumer() {
             this(0L);
@@ -154,6 +157,9 @@ public class PublisherFlushTests extends TestCase {
         public int getCount() {
             return _count;
         }
+        public void setConnector(OutPortConnector connector) {
+            return;
+        }
         
         protected long _sleepTick;
         protected long _delayStartTime;
@@ -179,7 +185,7 @@ public class PublisherFlushTests extends TestCase {
         public void publishInterfaceProfile(NVListHolder properties) {
         }
     };
-*/
+
 
     protected void setUp() throws Exception {
         super.setUp();
@@ -189,41 +195,6 @@ public class PublisherFlushTests extends TestCase {
         super.tearDown();
     }
 
-    /**
-     * <p>update()メソッド呼出周辺の即時性のテスト
-     * <ul>
-     * <li>Publisherのupdate()メソッド呼出後、所定時間内にConsumerのpush()メソッドが呼び出されるか？</li>
-     * <li>Consumerのpush()メソッド終了後、所定時間内にPublihserのupdate()メソッド呼出から復帰するか？</li>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_update_immediacy() {
-        long sleepTick = 100;
-        
-        MockConsumer consumer = new MockConsumer(sleepTick);
-        Properties prop = new Properties();
-        PublisherFlush publisher = new PublisherFlush(consumer, prop);
-        
-        for( int i = 0; i < 20; i++ ) {
-            consumer.setDelayStartTime();
-            publisher.update();
-            consumer.recordReturnTick();
-        }
-        
-        long permissibleDelayTick = 100;
-        Vector<Long> delayTicks = consumer.getDelayTicks();
-        for( int i = 0; i < delayTicks.size(); i++) {
-            assertTrue(delayTicks.get(i) < permissibleDelayTick);
-        }
-        
-        long permissibleReturnTick = 100;
-        Vector<Long> returnTicks = consumer.getReturnTicks();
-        for( int i = 0; i < returnTicks.size(); i++) {
-            assertTrue(returnTicks.get(i) < permissibleReturnTick);
-        }
-    }
-*/
     /**
      * <p> test of asetConsumer() </p>
      */
@@ -315,9 +286,13 @@ public class PublisherFlushTests extends TestCase {
         assertEquals(ReturnCode.PORT_OK,publisher.setListener(info, listeners));
 
         //write() is called before activate() is called. 
+	java.util.Properties props = new java.util.Properties();
+        props.put("org.omg.CORBA.ORBInitialPort", "2809");
+        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        ORB orb = ORB.init(new String[0], props);
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+	OutputStream cdr
+            = new EncapsOutputStreamExt(orb,true);
         cdr.write_long(123);
         assertEquals("2:",ReturnCode.PORT_OK,
                              publisher.write(cdr,0,0));
@@ -328,8 +303,8 @@ public class PublisherFlushTests extends TestCase {
                                     125563,846459,2071690107, };
 
         for(int icc=0;icc<7;++icc) {
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream cdr = any.create_output_stream();
+	    OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
             cdr.write_long(testdata[icc+1]);
 
             assertEquals("3:",ReturnCode.PORT_OK,
@@ -339,8 +314,8 @@ public class PublisherFlushTests extends TestCase {
 
         //The buffer calls write() in the state of full. 
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+	OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
         cdr.write_long(12345);
         assertEquals("4:",ReturnCode.BUFFER_FULL,
                                  publisher.write(cdr,0,0));
@@ -363,8 +338,8 @@ public class PublisherFlushTests extends TestCase {
         //After deactivate() is called, write() is called.
         publisher.deactivate();
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+	OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
         cdr.write_long(12345);
         assertEquals("7:",ReturnCode.PORT_OK,
                              publisher.write(cdr,0,0));
