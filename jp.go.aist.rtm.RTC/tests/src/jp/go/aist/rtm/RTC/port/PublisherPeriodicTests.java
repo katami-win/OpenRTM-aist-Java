@@ -6,6 +6,7 @@ import java.util.Vector;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
@@ -150,6 +151,19 @@ public class PublisherPeriodicTests extends TestCase {
         super(name);
     }
 
+    protected void localSleep(long time){
+        long now = System.currentTimeMillis();
+	for(;;) {
+             if((System.currentTimeMillis() - now)>=time){
+                 break;
+             }
+             try{
+                 Thread.sleep(1);
+             }
+             catch(java.lang.InterruptedException e) {
+             }
+        }
+    }
 
     protected Logbuf rtcout;
     protected ConsoleHandler m_stdout;
@@ -188,7 +202,7 @@ public class PublisherPeriodicTests extends TestCase {
 
         //init() operates normally even if the state of Properties is empty.
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","new");
         prop.setProperty("thread_type","bar");
@@ -210,7 +224,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.period_count","0");
         prop.setProperty("publisher.push_rate","");
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","fifo");
         prop.setProperty("publisher.skip_count","1");
@@ -221,7 +235,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.period_count","1");
         prop.setProperty("publisher.push_rate","");
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","skip");
         prop.setProperty("publisher.skip_count","-1");
@@ -232,7 +246,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.period_count","-1");
         prop.setProperty("publisher.push_rate","");
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","new");
         prop.setProperty("publisher.skip_count","foo");
@@ -243,7 +257,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.period_count","foo");
         prop.setProperty("publisher.push_rate","");
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","bar");
         prop.setProperty("publisher.skip_count","0");
@@ -254,7 +268,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.period_count","0");
         prop.setProperty("publisher.push_rate","");
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","all");
         prop.setProperty("publisher.skip_count","0");
@@ -265,7 +279,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.period_count","0");
         prop.setProperty("publisher.push_rate","0");
         retcode = publisher.init(prop);
-        assertEquals(ReturnCode.PORT_OK, retcode);
+        assertEquals(ReturnCode.INVALID_ARGS, retcode);
 
         prop.setProperty("publisher.push_policy","all");
         prop.setProperty("publisher.skip_count","0");
@@ -274,7 +288,7 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.exec_count","0");
         prop.setProperty("measurement.period_time","enable");
         prop.setProperty("measurement.period_count","0");
-        prop.setProperty("publisher.push_rate","-1");
+        prop.setProperty("publisher.push_rate","100");
         retcode = publisher.init(prop);
         assertEquals(ReturnCode.PORT_OK, retcode);
 
@@ -423,16 +437,27 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.exec_count","0");
         prop.setProperty("measurement.period_time","enable");
         prop.setProperty("measurement.period_count","0");
-        prop.setProperty("publisher.push_rate","");
+        prop.setProperty("publisher.push_rate","200");
         publisher.init(prop);
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
+	java.util.Properties props = new java.util.Properties();
+        props.put("org.omg.CORBA.ORBInitialPort", "2809");
+        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        ORB orb = ORB.init(new String[0], props);
         for(int icc=0;icc<8;++icc) {
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream cdr = any.create_output_stream();
+	    OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
             RTC.Time tm = new RTC.Time(123,127);
             RTC.TimedLong tmlong = new RTC.TimedLong(tm,icc);
             RTC.TimedLongHolder tmlongholder 
@@ -444,15 +469,11 @@ public class PublisherPeriodicTests extends TestCase {
 
         }
 
-        try{
-            Thread.sleep(10);
-        }
-        catch(java.lang.InterruptedException e) {
-        }
+        localSleep(20);
         //The buffer of provider is made full and write() is called. 
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+	OutputStream cdr
+            = new EncapsOutputStreamExt(orb,true);
         RTC.Time tm = new RTC.Time(123,127);
         RTC.TimedLong tmlong = new RTC.TimedLong(tm,8);
         RTC.TimedLongHolder tmlongholder 
@@ -460,34 +481,26 @@ public class PublisherPeriodicTests extends TestCase {
         tmlongholder._write(cdr);
         assertEquals("2:",ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
-        try{
-            Thread.sleep(10);
-        }
-        catch(java.lang.InterruptedException e) {
-        }
+        localSleep(20);
         }
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+        OutputStream cdr
+            = new EncapsOutputStreamExt(orb,true);
         RTC.Time tm = new RTC.Time(123,127);
         RTC.TimedLong tmlong = new RTC.TimedLong(tm,9);
         RTC.TimedLongHolder tmlongholder 
                 = new RTC.TimedLongHolder(tmlong);
         tmlongholder._write(cdr);
-        assertEquals("3:",ReturnCode.BUFFER_FULL,
+        assertEquals("3:",ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
-        try{
-            Thread.sleep(10);
+        localSleep(40);
         }
-        catch(java.lang.InterruptedException e) {
-        }
-        }
-
         //Four data is acquired from the buffer of provider.
         //
-        for(int icc=0;icc<4;++icc) {
+	assertEquals(8,consumer.get_m_put_data_len());
+        for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
-
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -505,8 +518,9 @@ public class PublisherPeriodicTests extends TestCase {
         }
         //The buffer of provier is not full and calls write(). 
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+        OutputStream cdr 
+            = new EncapsOutputStreamExt(orb,true);
+        
         RTC.Time tm = new RTC.Time(123,127);
         RTC.TimedLong tmlong = new RTC.TimedLong(tm,10);
         RTC.TimedLongHolder tmlongholder 
@@ -515,14 +529,13 @@ public class PublisherPeriodicTests extends TestCase {
         assertEquals("7:",ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
         try{
-            Thread.sleep(10);
+            Thread.sleep(20);
         }
         catch(java.lang.InterruptedException e) {
         }
         }
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+        OutputStream cdr = new EncapsOutputStreamExt(orb,true);
         RTC.Time tm = new RTC.Time(123,127);
         RTC.TimedLong tmlong = new RTC.TimedLong(tm,11);
         RTC.TimedLongHolder tmlongholder 
@@ -531,14 +544,16 @@ public class PublisherPeriodicTests extends TestCase {
         assertEquals("8:",ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
         try{
-            Thread.sleep(10);
+            Thread.sleep(20);
         }
         catch(java.lang.InterruptedException e) {
         }
         }
 
-        for(int icc=0;icc<8;++icc) {
+	assertEquals(4,consumer.get_m_put_data_len());
+        for(int icc=0;icc<4;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
 
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
@@ -547,7 +562,7 @@ public class PublisherPeriodicTests extends TestCase {
 
             assertEquals("9:",123,tlh.value.tm.sec);
             assertEquals("10:",127,tlh.value.tm.nsec);
-            assertEquals("i1:",icc+4,tlh.value.data);
+            assertEquals("11:",icc+8,tlh.value.data);
         }
         publisher.deactivate();
         
@@ -578,16 +593,27 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.exec_count","0");
         prop.setProperty("measurement.period_time","enable");
         prop.setProperty("measurement.period_count","0");
-        prop.setProperty("publisher.push_rate","");
+        prop.setProperty("publisher.push_rate","200");
         publisher.init(prop);
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
+	java.util.Properties props = new java.util.Properties();
+        props.put("org.omg.CORBA.ORBInitialPort", "2809");
+        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        ORB orb = ORB.init(new String[0], props);
         for(int icc=0;icc<16;++icc) {
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream cdr = any.create_output_stream();
+
+	    OutputStream cdr = new EncapsOutputStreamExt(orb,true);
             RTC.Time tm = new RTC.Time(123,127);
             RTC.TimedLong tmlong = new RTC.TimedLong(tm,icc);
             RTC.TimedLongHolder tmlongholder 
@@ -596,22 +622,15 @@ public class PublisherPeriodicTests extends TestCase {
 
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
-            if(icc<9) {
-                assertEquals(ReturnCode.PORT_OK,
-                                     ret);
-            }
-            else {
-                assertEquals(ReturnCode.BUFFER_FULL,
-                                     ret);
-            }
+            assertEquals(ReturnCode.PORT_OK, ret);
             try{
-                Thread.sleep(10);
+                Thread.sleep(20);
             }
             catch(java.lang.InterruptedException e) {
             }
         }
         try{
-            Thread.sleep(10);
+            Thread.sleep(20);
         }
         catch(java.lang.InterruptedException e) {
         }
@@ -619,8 +638,7 @@ public class PublisherPeriodicTests extends TestCase {
         //Because the buffer of consumer and provider are full, 
         // data is not transmitted.
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+	OutputStream cdr = new EncapsOutputStreamExt(orb,true);
         RTC.Time tm = new RTC.Time(123,127);
         RTC.TimedLong tmlong = new RTC.TimedLong(tm,16);
         RTC.TimedLongHolder tmlongholder 
@@ -636,8 +654,10 @@ public class PublisherPeriodicTests extends TestCase {
         }
 
         //Check data.
+	assertEquals(8,consumer.get_m_put_data_len());
         for(int icc=0;icc<8;++icc) {
-            OutputStream data  = consumer.get_m_put_data();
+            OutputStream data = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -654,8 +674,10 @@ public class PublisherPeriodicTests extends TestCase {
         catch(java.lang.InterruptedException e) {
         }
         // data are checked.
+	assertEquals(8,consumer.get_m_put_data_len());
         for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
 
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
@@ -667,8 +689,7 @@ public class PublisherPeriodicTests extends TestCase {
             assertEquals("9:",icc+8,tlh.value.data);
         }
         {
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream cdr = any.create_output_stream();
+	OutputStream cdr = new EncapsOutputStreamExt(orb,true);
         RTC.Time tm = new RTC.Time(123,127);
         RTC.TimedLong tmlong = new RTC.TimedLong(tm,17);
         RTC.TimedLongHolder tmlongholder 
@@ -685,6 +706,7 @@ public class PublisherPeriodicTests extends TestCase {
         //Data are checked
         {
         OutputStream data  = consumer.get_m_put_data();
+        assertTrue(data!=null);
 
         RTC.TimedLong tl = new RTC.TimedLong();
         RTC.TimedLongHolder tlh 
@@ -734,9 +756,16 @@ public class PublisherPeriodicTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
-        for(int icc=0;icc<8;++icc) {
+        for(int icc=0;icc<16;++icc) {
             OutputStream cdr  = toStream(icc,123,127);
             assertEquals(ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
@@ -745,12 +774,6 @@ public class PublisherPeriodicTests extends TestCase {
         }
 
         //The buffer of provier is not full and calls write(). 
-        {
-        OutputStream cdr  = toStream(8,123,127);
-        assertEquals(ReturnCode.PORT_OK,
-                                 publisher.write(cdr,-1,0));
-        this.sleep(20);
-        }
         {
         OutputStream cdr  = toStream(9,123,127);
         assertEquals(ReturnCode.BUFFER_FULL,
@@ -761,6 +784,7 @@ public class PublisherPeriodicTests extends TestCase {
         //Four data is acquired from the buffer of provider.
         for(int icc=0;icc<4;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -793,6 +817,12 @@ public class PublisherPeriodicTests extends TestCase {
         }
         {
         OutputStream cdr  = toStream(13,123,127);
+        assertEquals(ReturnCode.PORT_OK,
+                                 publisher.write(cdr,-1,0));
+        this.sleep(20);
+        }
+        {
+        OutputStream cdr  = toStream(13,123,127);
         assertEquals(ReturnCode.BUFFER_FULL,
                                  publisher.write(cdr,-1,0));
         this.sleep(10);
@@ -800,6 +830,7 @@ public class PublisherPeriodicTests extends TestCase {
 
         for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -813,6 +844,7 @@ public class PublisherPeriodicTests extends TestCase {
         this.sleep(20);
         for(int icc=0;icc<2;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -857,6 +889,13 @@ public class PublisherPeriodicTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         for(int icc=0;icc<16;++icc) {
@@ -864,14 +903,7 @@ public class PublisherPeriodicTests extends TestCase {
 
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
-            if(icc<9) {
-                assertEquals(ReturnCode.PORT_OK,
-                                     ret);
-            }
-            else {
-                assertEquals(ReturnCode.BUFFER_FULL,
-                                     ret);
-            }
+            assertEquals(ReturnCode.PORT_OK, ret);
             this.sleep(20);
 
         }
@@ -888,6 +920,7 @@ public class PublisherPeriodicTests extends TestCase {
         //Data are checked.
         for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
 
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
@@ -906,20 +939,14 @@ public class PublisherPeriodicTests extends TestCase {
 
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
-            if(icc<1) {
-                assertEquals(ReturnCode.PORT_OK,
-                                     ret);
-            }
-            else {
-                assertEquals(ReturnCode.BUFFER_FULL,
-                                     ret);
-            }
+            assertEquals(ReturnCode.PORT_OK, ret);
             this.sleep(10);
         }
         this.sleep(80);
 
         for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -940,6 +967,7 @@ public class PublisherPeriodicTests extends TestCase {
 
         for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -956,7 +984,6 @@ public class PublisherPeriodicTests extends TestCase {
         
         
     }
-
     /**
      * <p> pushSklip() </p>
      * 
@@ -980,12 +1007,19 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.exec_count","0");
         prop.setProperty("measurement.period_time","enable");
         prop.setProperty("measurement.period_count","0");
+        prop.setProperty("publisher.push_rate","200");
         publisher.init(prop);
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
-
         for(int icc=0;icc<16;++icc) {
             OutputStream cdr  = toStream(icc,123,127);
 
@@ -1012,6 +1046,7 @@ public class PublisherPeriodicTests extends TestCase {
         //Four data is acquired from the buffer of provider.
         for(int icc=0;icc<4;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -1036,11 +1071,13 @@ public class PublisherPeriodicTests extends TestCase {
                                  publisher.write(cdr,-1,0));
         this.sleep(10);
         }
+        this.sleep(10);
 
         assertEquals(6,
                               consumer.get_m_put_data_len());
         for(int icc=0;icc<6;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -1079,43 +1116,37 @@ public class PublisherPeriodicTests extends TestCase {
         prop.setProperty("measurement.exec_count","0");
         prop.setProperty("measurement.period_time","enable");
         prop.setProperty("measurement.period_count","0");
+        prop.setProperty("publisher.push_rate","100");
         publisher.init(prop);
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
         publisher.activate();
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
+        this.sleep(20);
 
         //The buffer of provider is made full and write() is called. 
-        for(int icc=0;icc<25;++icc) {
+        for(int icc=0;icc<24;++icc) {
             OutputStream cdr  = toStream(icc,123,127);
 
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
-            if(icc<18) {
-                assertEquals(ReturnCode.PORT_OK,
-                                     ret);
-            }
-            else {
-                assertEquals(ReturnCode.BUFFER_FULL,
-                                     ret);
-            }
+            assertEquals(ReturnCode.PORT_OK, ret);
             this.sleep(20);
 
         }
 
-        //Because the buffer of consumer and provider are full, 
-        // data is not transmitted.
-        {
-        OutputStream cdr  = toStream(25,123,127);
-
-        assertEquals(ReturnCode.BUFFER_FULL,
-                                 publisher.write(cdr,-1,0));
-        this.sleep(10);
-        }
 
         //Data are checked.
         for(int icc=0;icc<8;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -1132,6 +1163,7 @@ public class PublisherPeriodicTests extends TestCase {
         assertEquals(4,len);
         for(int icc=0;icc<len;++icc) {
             OutputStream data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
             RTC.TimedLong tl = new RTC.TimedLong();
             RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
@@ -1144,19 +1176,17 @@ public class PublisherPeriodicTests extends TestCase {
         this.sleep(20);
         {
         OutputStream cdr  = toStream(26,123,127);
+        OutputStream cdr2  = toStream(27,123,127);
         assertEquals(ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
-        this.sleep(10);
-        }
-        {
-        OutputStream cdr  = toStream(27,123,127);
         assertEquals(ReturnCode.PORT_OK,
-                                 publisher.write(cdr,-1,0));
-        this.sleep(10);
+                                 publisher.write(cdr2,-1,0));
+        localSleep(40);
         }
         //Data is checked.
         {
         OutputStream data  = consumer.get_m_put_data();
+        assertTrue(data!=null);
         RTC.TimedLong tl = new RTC.TimedLong();
         RTC.TimedLongHolder tlh 
             = new RTC.TimedLongHolder(tl);
@@ -1164,7 +1194,7 @@ public class PublisherPeriodicTests extends TestCase {
 
         assertEquals("7:",123,tlh.value.tm.sec);
         assertEquals("8:",127,tlh.value.tm.nsec);
-        assertEquals("9:",26,tlh.value.data);
+        assertEquals("9:",27,tlh.value.data);
         }
 
         this.sleep(10);
@@ -1200,6 +1230,13 @@ public class PublisherPeriodicTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         //Eight data is not transmitted. 
@@ -1216,25 +1253,37 @@ public class PublisherPeriodicTests extends TestCase {
         this.sleep(10);
         //Data is gotten from the buffer of provider.
         //
-        int len = consumer.get_m_put_data_len() -1;
-        this.sleep(10);
         //Is the latest data transmitted?
-        {
-            OutputStream data  = consumer.get_m_put_data();
-            RTC.TimedLong tl = new RTC.TimedLong();
-            RTC.TimedLongHolder tlh 
+        RTC.TimedLong tl = new RTC.TimedLong();
+        RTC.TimedLongHolder tlh 
                 = new RTC.TimedLongHolder(tl);
-            tlh._read(data.create_input_stream());
-
-            assertEquals("7:",123,tlh.value.tm.sec);
-            assertEquals("8:",127,tlh.value.tm.nsec);
-            assertEquals("9:",7,tlh.value.data);
+	java.util.Properties props = new java.util.Properties();
+        props.put("org.omg.CORBA.ORBInitialPort", "2809");
+        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        ORB orb = ORB.init(new String[0], props);
+        OutputStream data 
+                = new EncapsOutputStreamExt(orb,true);
+        int len = consumer.get_m_put_data_len();
+        for(int icc=0;icc<len;++icc) {
+            data  = consumer.get_m_put_data();
+            assertTrue(data!=null);
         }
+
+        tlh._read(data.create_input_stream());
+
+        assertEquals("7:",123,tlh.value.tm.sec);
+        assertEquals("8:",127,tlh.value.tm.nsec);
+        assertEquals("9:",7,tlh.value.data);
+
+        tlh._read(data.create_input_stream());
+
+        assertEquals("7:",123,tlh.value.tm.sec);
+        assertEquals("8:",127,tlh.value.tm.nsec);
+        assertEquals("9:",7,tlh.value.data);
 
         this.sleep(10);
         publisher.deactivate();
     }
-
     /**
      * <p>write() </p>
      * The procedure is written disregarding it.
@@ -1280,6 +1329,13 @@ public class PublisherPeriodicTests extends TestCase {
 
         //
         publisher.setConsumer(consumer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         {
         OutputStream cdr  = toStream(123,123,127);
         assertEquals(ReturnCode.PORT_OK,
@@ -1297,8 +1353,14 @@ public class PublisherPeriodicTests extends TestCase {
         }
     }
     protected OutputStream toStream(int data, int sec, int nsec){
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream cdr = any.create_output_stream();
+            //org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
+            //OutputStream cdr = any.create_output_stream();
+	    java.util.Properties props = new java.util.Properties();
+            props.put("org.omg.CORBA.ORBInitialPort", "2809");
+            props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+            ORB orb = ORB.init(new String[0], props);
+	    OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
             RTC.Time tm = new RTC.Time(sec,nsec);
             RTC.TimedLong tmlong = new RTC.TimedLong(tm,data);
             RTC.TimedLongHolder tmlongholder 
@@ -1314,13 +1376,15 @@ public class PublisherPeriodicTests extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_release() {
         CounterConsumer consumer = new CounterConsumer();
         Properties prop = new Properties();
         prop.setProperty("dataport.push_rate", "10"); // 10 [Hz]
-        PublisherPeriodic publisher = new PublisherPeriodic(consumer, prop);
-        
+        PublisherPeriodic publisher = new PublisherPeriodic();
+        publisher.init(prop);
+        publisher.setConsumer(consumer);
+        publisher.activate();
+
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -1350,56 +1414,23 @@ public class PublisherPeriodicTests extends TestCase {
         int countSleeped = consumer.getCount();
         assertEquals(countReleased, countSleeped);
     }
-*/
-    /**
-     * <p>PublisherによるConsumer呼出間隔精度のテスト
-     * <ul>
-     * <li>Publisherに指定した時間間隔で、正しくConsumerがコールバックされるか？</li>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_interval_accuracy() {
-        MockConsumer consumer = new MockConsumer();
-        Properties prop = new Properties();
-        prop.setProperty("dataport.push_rate", "10"); // 10 [Hz]
-        PublisherPeriodic publisher = new PublisherPeriodic(consumer, prop);
-        
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        
-        // Publisherの動作を停止させる
-        publisher.release();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        
-        // 指定した時間間隔で正しくConsumerがコールバックされているか？
-        long permissibleTickMin = (long)(100 * 0.9);
-        long permissibleTickMax = (long)(100 * 1.1);
-        Vector<Long> intervalTicks = consumer.getIntervalTicks();
-        assertTrue("1:",intervalTicks.size() > 0);
-
-        for( int i = 0; i < intervalTicks.size(); i++) {
-            long tick = intervalTicks.get(i);
-            assertTrue("2:"+i,(permissibleTickMin <= tick) && (tick <= permissibleTickMax));
-        }
-    }
-*/
-
     /**
      * 
      * 
      */
     class PublisherPeriodicMock extends PublisherPeriodic {
+      long write_now;
+      long push_time;
       public PublisherPeriodicMock() {
           ;
       }
+      public ReturnCode write(OutputStream data, int sec, int usec) {
+          write_now = System.currentTimeMillis();
+	  System.out.println("write_now="+write_now);
+          ReturnCode ret = super.write(data, sec, usec);
+	  return ret;
+      }
+
     };
     /**
      * 
@@ -1423,20 +1454,31 @@ public class PublisherPeriodicTests extends TestCase {
          */
         public ReturnCode put(final OutputStream data) {
             rtcout.println(rtcout.TRACE, "put():"+m_buffer.readable());
-RTC.TimedLong tl = new RTC.TimedLong();
-RTC.TimedLongHolder tlh 
-      = new RTC.TimedLongHolder(tl);
-tlh._read(data.create_input_stream());
-rtcout.println(rtcout.TRACE, "putdata:"+tlh.value.data);
+            RTC.TimedLong tl = new RTC.TimedLong();
+            RTC.TimedLongHolder tlh 
+                = new RTC.TimedLongHolder(tl);
+            tlh._read(data.create_input_stream());
+            rtcout.println(rtcout.TRACE, "putdata:"+tlh.value.data);
             if(m_test_mode == 0) {
                 if (m_buffer.full()) {
                      rtcout.println(rtcout.TRACE, "m_buffer is full.");
                      return ReturnCode.BUFFER_FULL;
                 }
 
+	        java.util.Properties props = new java.util.Properties();
+                props.put("org.omg.CORBA.ORBInitialPort", "2809");
+                props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+                ORB orb = ORB.init(new String[0], props);
+                EncapsOutputStreamExt output_stream 
+                    = new EncapsOutputStreamExt(orb, true);
+                //output_stream.write_long(tlh.value);
+                tlh._write(output_stream);
+
                 jp.go.aist.rtm.RTC.buffer.ReturnCode ret 
-                                                 = m_buffer.write(data);
-               rtcout.println(rtcout.TRACE, "put():"+m_buffer.readable());
+                                                 = m_buffer.write(output_stream);
+                //jp.go.aist.rtm.RTC.buffer.ReturnCode ret 
+                //                                 = m_buffer.write(data);
+                rtcout.println(rtcout.TRACE, "put():"+m_buffer.readable());
 
                 rtcout.println(rtcout.TRACE, "put():ret:"+ret);
                 return convertReturn(ret);
@@ -1468,12 +1510,24 @@ rtcout.println(rtcout.TRACE, "putdata:"+tlh.value.data);
          * 
          */
         public OutputStream get_m_put_data() {
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream out = any.create_output_stream();
-            DataRef<OutputStream> cdr = new DataRef<OutputStream>(out);
-            m_buffer.read(cdr);
+            if(m_buffer.readable() != 0){
+	        java.util.Properties props = new java.util.Properties();
+                props.put("org.omg.CORBA.ORBInitialPort", "2809");
+                props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+                ORB orb = ORB.init(new String[0], props);
 
-            return cdr.v;
+                org.omg.CORBA.Any any = orb.create_any();
+                OutputStream out = any.create_output_stream();
+	        //OutputStream out 
+                //    = new EncapsOutputStreamExt(orb,true);
+                DataRef<OutputStream> cdr = new DataRef<OutputStream>(out);
+                m_buffer.read(cdr);
+
+                return cdr.v;
+            }
+            else {
+                return null;
+            }
         }
       /*!
        * 
@@ -1497,7 +1551,7 @@ rtcout.println(rtcout.TRACE, "putdata:"+tlh.value.data);
           m_test_mode = mode;
       }
 */
-       BufferBase<OutputStream> m_buffer;
+       BufferBase<OutputStream> m_buffer = new RingBuffer<OutputStream>();
 /*
        ::OpenRTM::CdrData  m_put_data;
 */
