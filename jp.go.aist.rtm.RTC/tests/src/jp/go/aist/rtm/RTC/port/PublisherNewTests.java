@@ -4,6 +4,7 @@ import java.util.Vector;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
@@ -29,6 +30,106 @@ import jp.go.aist.rtm.RTC.log.Logbuf;
  */
 public class PublisherNewTests extends TestCase {
 
+  class MockConsumer implements InPortConsumer {
+        public MockConsumer() {
+            this(0L);
+        }
+        public MockConsumer(long sleepTick) {
+            super();
+            _sleepTick = sleepTick;
+            _count = 0;
+            resetDelayStartTime();
+        }
+
+        public void init(Properties prop) {
+        }
+
+        public void push() {
+            long now = System.currentTimeMillis();
+
+            long delayTick = now - _delayStartTime;
+
+            _delayTicks.add(delayTick);
+
+            resetDelayStartTime();
+
+            try {
+                Thread.sleep(_sleepTick);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            _count++;
+
+            setReturnStartTime();
+        }
+
+        public InPortConsumer clone() {
+            MockConsumer clone = new MockConsumer();
+            clone._sleepTick = _sleepTick;
+            return clone;
+        }
+
+        public boolean subscribeInterface(NVListHolder holder) {
+            return true;
+        }
+
+        public void unsubscribeInterface(NVListHolder holder) {
+            return;
+        }
+
+        public void setDelayStartTime() {
+            if( _delayStartTime == 0 ) {
+                _delayStartTime = System.currentTimeMillis();
+            }
+        }
+
+        public void recordReturnTick() {
+            long now = System.currentTimeMillis();
+
+            long returnTick = now - _returnStartTime;
+
+            _returnTicks.add(returnTick);
+        }
+
+        public Vector<Long> getDelayTicks() {
+            return _delayTicks;
+        }
+
+        public Vector<Long> getReturnTicks() {
+            return _returnTicks;
+        }
+
+        public int getCount() {
+            return _count;
+        }
+        public void setConnector(OutPortConnector connector) {
+            return;
+        }
+
+        protected long _sleepTick;
+        protected long _delayStartTime;
+        protected long _returnStartTime;
+        protected Vector<Long> _delayTicks = new Vector<Long>();
+        protected Vector<Long> _returnTicks = new Vector<Long>();
+        protected int _count;
+
+        protected void resetDelayStartTime() {
+            _delayStartTime = 0;
+        }
+
+        protected void setReturnStartTime() {
+            _returnStartTime = System.currentTimeMillis();
+        }
+
+        protected void resetReturnStartTime() {
+            _returnStartTime = 0;
+        }
+        public ReturnCode put(final OutputStream data) {
+            return ReturnCode.PORT_OK;
+        }
+        public void publishInterfaceProfile(NVListHolder properties) {
+        }
+    };
     protected Logbuf rtcout;
     protected ConsoleHandler m_stdout;
     protected FileHandler m_fh;
@@ -45,8 +146,8 @@ public class PublisherNewTests extends TestCase {
         PeriodicTaskFactory<PeriodicTaskBase,String> factory 
             = PeriodicTaskFactory.instance();
         factory.addFactory("default",
-			   new PeriodicTask(),
-			   new PeriodicTask());
+                           new PeriodicTask(),
+                           new PeriodicTask());
     }
 
     protected void tearDown() throws Exception {
@@ -237,9 +338,16 @@ public class PublisherNewTests extends TestCase {
         this.sleep(10000);
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
-        for(int icc=0;icc<8;++icc) {
+        for(int icc=0;icc<16;++icc) {
             OutputStream cdr  = toStream(icc,123,127);
 
 
@@ -248,11 +356,6 @@ public class PublisherNewTests extends TestCase {
         }
 
         //The buffer of provier is not full and calls write(). 
-        {
-        OutputStream cdr  = toStream(8,123,127);
-        assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.PORT_OK));
-        this.sleep(10000);
-        }
         {
         OutputStream cdr  = toStream(9,123,127);
         assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.BUFFER_FULL));
@@ -330,6 +433,13 @@ public class PublisherNewTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         for(int icc=0;icc<16;++icc) {
@@ -337,12 +447,7 @@ public class PublisherNewTests extends TestCase {
 
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
-            if(icc<9) {
-                assertTrue(ret.equals(ReturnCode.PORT_OK));
-            }
-            else {
-                assertTrue(ret.equals(ReturnCode.BUFFER_FULL));
-            }
+            assertTrue(ret.equals(ReturnCode.PORT_OK));
             this.sleep(10000);
 
         }
@@ -442,9 +547,16 @@ public class PublisherNewTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
-        for(int icc=0;icc<8;++icc) {
+        for(int icc=0;icc<16;++icc) {
             OutputStream cdr  = toStream(icc,123,127);
             ReturnCode ret = publisher.write(cdr,-1,0);
             rtcout.println(rtcout.TRACE, "    0:"+icc+":write()="+ret);
@@ -455,13 +567,6 @@ public class PublisherNewTests extends TestCase {
 
         this.sleep(100000);
         //The buffer of provier is not full and calls write(). 
-        {
-        OutputStream cdr  = toStream(8,123,127);
-        ReturnCode ret = publisher.write(cdr,-1,0);
-        rtcout.println(rtcout.TRACE, "    0:8:"+ret);
-        assertTrue("0:8:",ret.equals(ReturnCode.PORT_OK));
-        this.sleep(100000);
-        }
         {
         OutputStream cdr  = toStream(9,123,127);
         ReturnCode ret = publisher.write(cdr,-1,0);
@@ -557,6 +662,13 @@ public class PublisherNewTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         for(int icc=0;icc<16;++icc) {
@@ -565,12 +677,7 @@ public class PublisherNewTests extends TestCase {
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
             rtcout.println(rtcout.TRACE, "    0:"+icc+":write()="+ret);
-            if(icc<9) {
-                assertTrue(ret.equals(ReturnCode.PORT_OK));
-            }
-            else {
-                assertTrue(ret.equals(ReturnCode.BUFFER_FULL));
-            }
+            assertTrue(ret.equals(ReturnCode.PORT_OK));
             this.sleep(10000);
 
         }
@@ -678,6 +785,13 @@ public class PublisherNewTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         for(int icc=0;icc<16;++icc) {
@@ -689,17 +803,23 @@ public class PublisherNewTests extends TestCase {
         }
 
         //The buffer is full and calls write(). 
-        {
-        OutputStream cdr  = toStream(8,123,127);
-        assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.PORT_OK));
-        this.sleep(10000);
-        }
-        {
-        OutputStream cdr  = toStream(9,123,127);
-        assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.PORT_OK));
-        this.sleep(10000);
-        }
+        for(int icc=0;icc<8;++icc) {
+            OutputStream cdr  = toStream(icc+8,123,127);
 
+            assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.PORT_OK));
+
+            this.sleep(10000);
+        }
+        {
+        OutputStream cdr  = toStream(16,123,127);
+        assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.PORT_OK));
+        this.sleep(10000);
+        }
+        {
+        OutputStream cdr  = toStream(17,123,127);
+        assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.BUFFER_FULL));
+        this.sleep(10000);
+        }
         //Four data is acquired from the buffer of provider.
         for(int icc=0;icc<4;++icc) {
             OutputStream data  = consumer.get_m_put_data();
@@ -775,20 +895,22 @@ public class PublisherNewTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         //The buffer of provider is made full and write() is called. 
         for(int icc=0;icc<24;++icc) {
-            OutputStream cdr  = toStream(icc,123,127);
+            OutputStream cdr = toStream(icc,123,127);
 
             ReturnCode ret;
             ret = publisher.write(cdr,-1,0);
-            if(icc<18) {
-                assertTrue(ret.equals(ReturnCode.PORT_OK));
-            }
-            else {
-                assertTrue(ret.equals(ReturnCode.BUFFER_FULL));
-            }
+            assertTrue(ret.equals(ReturnCode.PORT_OK));
             this.sleep(10000);
 
         }
@@ -797,6 +919,11 @@ public class PublisherNewTests extends TestCase {
         // data is not transmitted.
         {
         OutputStream cdr  = toStream(24,123,127);
+        assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.PORT_OK));
+        this.sleep(10000);
+        }
+        {
+        OutputStream cdr  = toStream(25,123,127);
         assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.BUFFER_FULL));
         this.sleep(10000);
         }
@@ -817,7 +944,7 @@ public class PublisherNewTests extends TestCase {
         //Because the buffer of consumer and provider are full, 
         // data is not transmitted.
         {
-        OutputStream cdr  = toStream(25,123,127);
+        OutputStream cdr  = toStream(26,123,127);
         assertTrue(publisher.write(cdr,-1,0).equals(ReturnCode.BUFFER_FULL));
         this.sleep(10000);
         }
@@ -892,6 +1019,13 @@ public class PublisherNewTests extends TestCase {
 
         publisher.setConsumer(consumer);
         publisher.setBuffer(buffer);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
         publisher.activate();
 
         //Eight data is not transmitted. 
@@ -909,6 +1043,13 @@ public class PublisherNewTests extends TestCase {
         int len = consumer.get_m_put_data_len() -1;
         this.sleep(10);
         //Is the latest data transmitted?
+        for(int icc=0;icc<len;++icc) {
+            OutputStream data  = consumer.get_m_put_data();
+            RTC.TimedLong tl = new RTC.TimedLong();
+            RTC.TimedLongHolder tlh 
+                = new RTC.TimedLongHolder(tl);
+            tlh._read(data.create_input_stream());
+        }
         {
             OutputStream data  = consumer.get_m_put_data();
             RTC.TimedLong tl = new RTC.TimedLong();
@@ -951,6 +1092,13 @@ public class PublisherNewTests extends TestCase {
         prop.setProperty("measurement.period_time","enable");
         prop.setProperty("measurement.period_count","0");
         publisher.init(prop);
+        ConnectorBase.ConnectorInfo info 
+            = new ConnectorBase.ConnectorInfo("test",
+                                 "test",
+                                 new Vector<String>(),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        publisher.setListener(info,listeners);
 
         {
         OutputStream cdr  = toStream(123,123,127);
@@ -1006,8 +1154,14 @@ public class PublisherNewTests extends TestCase {
         }
     }
     protected OutputStream toStream(int data, int sec, int nsec){
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream cdr = any.create_output_stream();
+            //org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
+            //OutputStream cdr = any.create_output_stream();
+            java.util.Properties props = new java.util.Properties();
+            props.put("org.omg.CORBA.ORBInitialPort", "2809");
+            props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+            ORB orb = ORB.init(new String[0], props);
+            OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
             RTC.Time tm = new RTC.Time(sec,nsec);
             RTC.TimedLong tmlong = new RTC.TimedLong(tm,data);
             RTC.TimedLongHolder tmlongholder 
@@ -1025,14 +1179,15 @@ public class PublisherNewTests extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_update_large_interval() {
         long sleepTick = 100;
         long intervalTick = sleepTick * 10;
         
         MockConsumer consumer = new MockConsumer(sleepTick);
-        Properties prop = new Properties();
-        PublisherNew publisher = new PublisherNew(consumer, prop);
+        //Properties prop = new Properties();
+        //PublisherNew publisher = new PublisherNew(consumer, prop);
+        PublisherNew publisher = new PublisherNew();
+        publisher.setConsumer(consumer);
         
         for( int i = 0; i < 5; i++ ) {
             consumer.setDelayStartTime();
@@ -1061,7 +1216,6 @@ public class PublisherNewTests extends TestCase {
             assertTrue(delayTicks.get(i) < permissibleDelay);
         }
     }
-*/
     /**
      * <p>update()メソッドのテスト
      * <ul>
@@ -1069,14 +1223,15 @@ public class PublisherNewTests extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_update_small_interval() {
         long sleepTick = 100;
         long intervalTick = sleepTick / 10;
         
         MockConsumer consumer = new MockConsumer(sleepTick);
-        Properties prop = new Properties();
-        PublisherNew publisher = new PublisherNew(consumer, prop);
+        //Properties prop = new Properties();
+        //PublisherNew publisher = new PublisherNew(consumer, prop);
+        PublisherNew publisher = new PublisherNew();
+        publisher.setConsumer(consumer);
         
         for( int i = 0; i < 50; i++ ) {
             consumer.setDelayStartTime();
@@ -1105,45 +1260,6 @@ public class PublisherNewTests extends TestCase {
             assertTrue(delayTicks.get(i) < permissibleDelay);
         }
     }
-*/
-    /**
-     * <p>release()メソッドのテスト
-     * <ul>
-     * <li>release()メソッド呼出によりPublisherの動作を確実に停止できるか？</li>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_release() {
-        MockConsumer consumer = new MockConsumer(100);
-        Properties prop = new Properties();
-        PublisherNew publisher = new PublisherNew(consumer, prop);
-        
-        // update()を呼出して、Consumerを呼び出させる
-        publisher.update();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        publisher.release();
-        
-        assertEquals(1, consumer.getCount());
-        
-        // 再度update()を呼出し、Consumerを呼出しうる時間を与える。
-        // （実際には、前段のrelease()によりPublisherが停止済みであり、
-        // update()呼出は何ら影響を与えないことを予期している。）
-        publisher.update();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        // Consumer呼出回数が変わっていないこと、つまりPublisherの動作が停止していることを確認する
-        assertEquals(1, consumer.getCount());
-    }
-*/
 
     /**
      * 
