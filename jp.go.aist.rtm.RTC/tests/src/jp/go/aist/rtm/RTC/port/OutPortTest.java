@@ -52,15 +52,15 @@ public class OutPortTest extends TestCase {
             m_amplitude = amplitude;
         }
         public Double run(Double value) {
-            return m_amplitude * value;
+            return m_amplitude * value.doubleValue();
         }
         private double m_amplitude;
     };
-/*
     class MockOutPortConnector extends OutPortConnector {
         public MockOutPortConnector(ConnectorInfo profile, 
+                    ConnectorListeners listeners,
                     BufferBase<OutputStream> buffer) {
-            super(profile);
+            super(profile, listeners);
         }
         public void setListener(ConnectorInfo profile, 
                         ConnectorListeners listeners){
@@ -91,7 +91,6 @@ public class OutPortTest extends TestCase {
         protected Double m_data= new Double(0.0);
         
     }
-*/    
     protected void setUp() throws Exception {
         super.setUp();
     }
@@ -129,7 +128,6 @@ public class OutPortTest extends TestCase {
      * </ol>
      * </p>
      */
-/*
     public void test_write_OnWrite_full() {
         DataRef<Double> bindValue = new DataRef<Double>(0d);
         OutPort<Double> outPort = new OutPort<Double>("OutPort", bindValue);
@@ -139,7 +137,7 @@ public class OutPortTest extends TestCase {
         Properties prop = new Properties("id","test");
         ConnectorBase.ConnectorInfo profile 
             = new ConnectorBase.ConnectorInfo("test","test",ports,prop);
-        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null);
+        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null,null);
         outport_conn.set_test_return_code(ReturnCode.BUFFER_FULL);
         cons.add(outport_conn);
 
@@ -155,41 +153,6 @@ public class OutPortTest extends TestCase {
         // あらかじめ設定されたOnWriteコールバックが正しく呼び出されたか？
         assertEquals(writeValue, onWrite.m_value);
     }
-*/
-    /**
-     * <p>バッファフル時のwrite()メソッドのOnOverflowコールバック呼出テスト
-     * <ol>
-     * <li>OutPortに割り当てされたバッファがフルの場合に、あらかじめ設定されたOnOverflowコールバックが正しく呼び出されるか？</li>
-     * </ol>
-     * </p>
-     */
-/*
-    public void test_write_OnOverflow() {
-        // 常にフル状態であるバッファを用いてOutPortオブジェクトを生成する
-        DataRef<Double> bindValue = new DataRef<Double>(0d);
-        OutPort<Double> outPort = new OutPort<Double>( "OutPort", bindValue);
-        
-        Vector<OutPortConnector> cons = outPort.connectors();
-        Vector<String> ports  = new Vector<String>();
-        Properties prop = new Properties("id","test");
-        ConnectorBase.ConnectorInfo profile 
-            = new ConnectorBase.ConnectorInfo("test","test",ports,prop);
-        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null);
-        outport_conn.set_test_return_code(ReturnCode.BUFFER_FULL);
-        cons.add(outport_conn);
-
-        OnOverflowMock<Double> onOverflow = new OnOverflowMock<Double>();
-        onOverflow.data = 0D;
-        outPort.setOnOverflow(onOverflow);
-
-        // バッファフルによりwrite()メソッドは意図どおり失敗するか？
-        double writeValue = 3.14159265;
-        assertFalse(outPort.write(writeValue));
-        
-        // OutPortに割り当てされたバッファがフルの場合に、あらかじめ設定されたOnOverflowコールバックが正しく呼び出されたか？
-        assertEquals(writeValue, onOverflow.data);
-    }
-*/
     /**
      * <p>バッファフルでない時の、write()メソッドのOnOverflowコールバック呼出テスト
      * <ol>
@@ -197,23 +160,29 @@ public class OutPortTest extends TestCase {
      * </ol>
      * </p>
      */
-/*
     public void test_write_OnOverflow_not_full() {
         DataRef<Double> bindValue = new DataRef<Double>(0d);
         OutPort<Double> outPort = new OutPort<Double>("OutPort", bindValue, 8);
         
-        OnOverflowMock<Double> onOverflow = new OnOverflowMock<Double>();
+        Vector<OutPortConnector> cons = outPort.connectors();
+        Vector<String> ports  = new Vector<String>();
+        Properties prop = new Properties("id","test");
+        ConnectorBase.ConnectorInfo profile 
+            = new ConnectorBase.ConnectorInfo("test","test",ports,prop);
+        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null,null);
+        cons.add(outport_conn);
+
+
+	OnOverflowMock<Double> onOverflow = new OnOverflowMock<Double>();
         onOverflow.data = 0D;
         outPort.setOnOverflow(onOverflow);
         // write()メソッドは成功するか？
         double writeValue = 3.14159265D;
-        assertTrue(outPort.write(writeValue));
+        assertTrue(outPort.write(new Double(writeValue)));
         
         // バッファフルでない場合、OnOverflowコールバックが意図どおり未呼出のままか？
         assertEquals(0.0D, onOverflow.data);
     }
-*/
-/*
     public void test_write_OnWriteConvert() {
         DataRef<Double> bindValue = new DataRef<Double>(0d);
         OutPort<Double> outPort = new OutPort<Double>("OutPort", bindValue, 8);
@@ -223,7 +192,7 @@ public class OutPortTest extends TestCase {
         Properties prop = new Properties("id","test");
         ConnectorBase.ConnectorInfo profile 
             = new ConnectorBase.ConnectorInfo("test","test",ports,prop);
-        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null);
+        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null,null);
         cons.add(outport_conn);
 
         double amplitude = 1.41421356D;
@@ -232,14 +201,13 @@ public class OutPortTest extends TestCase {
         
         for (int i = 0; i < 100; ++i) {
             double writeValue = i * 3.14159265D;
-            assertTrue(outPort.write(writeValue));
+            assertTrue(outPort.write(new Double(writeValue)));
             
             // write()で書き込んだ値が、read()で正しく読み出されるか？
             double expectedValue = amplitude * writeValue;
             assertEquals(expectedValue, outport_conn.m_data);
         }
     }
-*/    
     
     /**
      * <p>データ書き込み/読み込みのテストです。</p>
@@ -250,7 +218,6 @@ public class OutPortTest extends TestCase {
      * </ol>
      * </p>
      */
-/*
     public void test_wr() {
         
         DataRef<Double> value = new DataRef<Double>(0d);
@@ -262,7 +229,7 @@ public class OutPortTest extends TestCase {
         Properties prop = new Properties("id","test");
         ConnectorBase.ConnectorInfo profile 
             = new ConnectorBase.ConnectorInfo("test","test",ports,prop);
-        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null);
+        MockOutPortConnector outport_conn = new MockOutPortConnector(profile,null,null);
         cons.add(outport_conn);
 
         for (int i = 0; i < 100; ++i) {
@@ -276,60 +243,4 @@ public class OutPortTest extends TestCase {
             assertEquals(value, outport_conn.m_data);
         }
     }
-*/    
-    /**
-     * <p>ブロッキングモードにおけるデータ書き込みタイムアウトのテストです。</p>
-     * <p>次の内容にてテストを行います。
-     * <ol>
-     * <li>常にフル状態であるバッファを用いてOutPortオブジェクトを生成する。</li>
-     * <li>OutPortオブジェクトに対して、ブロッキングモードONを指定する。</li>
-     * <li>OutPortオブジェクトに対して、タイムアウト値を指定する。</li>
-     * <li>OutPortオブジェクトに対してデータ書き込みを行い、オーバフローコールバックが
-     * 正しく呼び出されることを確認する。</li>
-     * <li>指定した時間どおりにタイムアウトすることを確認する。</li>
-     * </ol>
-     * </p>
-     */
-/*
-    public void test_write_timeout() {
-
-        // 常にフル状態であるバッファを用いてOutPortオブジェクトを生成する
-        DataRef<Double> value = new DataRef<Double>(0d);
-//        OutPort<Double> outp = new OutPort<Double>(
-//                new FullBuffer<Double>(8), "OutPort", value);
-        OutPort<Double> outp = new OutPort<Double>(
-                "OutPort", value);
-        
-        // OutPortオブジェクトに対して、ブロッキングモードONを指定する
-        outp.setWriteBlock(true);
-        
-        // OutPortオブジェクトに対して、タイムアウト値を指定する
-        outp.setWriteTimeout(WTIMEOUT_USEC);
-
-        OnOverflowMock<Double> ofcb = new OnOverflowMock<Double>();
-        outp.setOnOverflow(ofcb);
-
-        long tm_pre = System.nanoTime(); // [nsec]
-
-        for (int i = 0; i < 10; ++i) {
-            
-            value.v = i * 3.14159265;
-
-            // OutPortオブジェクトに対してデータ書き込みを行い、
-            // オーバフローコールバックが正しく呼び出されることを確認する
-            assertFalse(outp.write(value.v));
-            assertEquals(ofcb.data, value.v);
-
-            // 指定した時間どおりにタイムアウトすることを確認する
-            long tm_cur = System.nanoTime();
-            long tm_diff = tm_cur - tm_pre; // [nsec]
-
-            double interval = ((double) tm_diff) / 1000000000; // [nsec] --> [sec]
-            tm_pre = tm_cur;
-
-            assertEquals((double) WTIMEOUT_USEC / USEC_PER_SEC, interval, 0.1
-                    * WTIMEOUT_USEC / USEC_PER_SEC);
-        }
-    }
-*/
 }
