@@ -10,6 +10,7 @@ import org.omg.PortableServer.POA;
 import java.util.logging.FileHandler;
 
 import _SDOPackage.NVListHolder;
+import RTC.ConnectorProfileHolder;
 
 import jp.go.aist.rtm.RTC.BufferFactory;
 import jp.go.aist.rtm.RTC.PeriodicTask;
@@ -22,6 +23,8 @@ import jp.go.aist.rtm.RTC.util.DataRef;
 import jp.go.aist.rtm.RTC.util.ORBUtil;
 import jp.go.aist.rtm.RTC.util.NVListHolderFactory;
 import jp.go.aist.rtm.RTC.log.Logbuf;
+import jp.go.aist.rtm.RTC.port.ConnectorListener;
+import jp.go.aist.rtm.RTC.util.Properties;
 
 public class OutPortCorbaCdrProviderTest extends TestCase {
     /**
@@ -42,6 +45,17 @@ public class OutPortCorbaCdrProviderTest extends TestCase {
             return m_properties;
         }
     };
+    class Listener extends ConnectorListener{
+        public Listener(final String name){
+            m_name = name;
+        }
+
+        public jp.go.aist.rtm.RTC.connectorListener.ReturnCode operator(ConnectorBase.ConnectorInfo arg){
+            return jp.go.aist.rtm.RTC.connectorListener.ReturnCode.NO_CHANGE;
+        }
+        public String m_name;
+    }
+
     protected static Logbuf rtcout = null; 
     protected FileHandler m_fh;
     private ORB m_orb;
@@ -81,8 +95,12 @@ public class OutPortCorbaCdrProviderTest extends TestCase {
      *  
      */
     protected OutputStream toStream(byte[] data, int sec, int nsec){
-            org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-            OutputStream cdr = any.create_output_stream();
+            java.util.Properties props = new java.util.Properties();
+            props.put("org.omg.CORBA.ORBInitialPort", "2809");
+            props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+            ORB orb = ORB.init(new String[0], props);
+            OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
             RTC.Time tm = new RTC.Time(sec,nsec);
             RTC.TimedOctetSeq tmlong = new RTC.TimedOctetSeq(tm,data);
             RTC.TimedOctetSeqHolder tmlongholder 
@@ -145,6 +163,34 @@ public class OutPortCorbaCdrProviderTest extends TestCase {
 
         OpenRTM.PortStatus retcode = null;
 
+
+        RTC.ConnectorProfile prof = new RTC.ConnectorProfile();
+        prof.connector_id = "id0";
+        prof.name = "InPortBaseTest0";
+        prof.ports = new RTC.PortService[1];
+
+        NVListHolder nvholder = new NVListHolder(prof.properties);
+        CORBA_SeqUtil.push_back(nvholder,
+                                 NVUtil.newNV("dataport.interface_type",
+                                 "corba_cdr"));
+        CORBA_SeqUtil.push_back(nvholder,
+                                 NVUtil.newNV("dataport.dataflow_type",
+                                 "pull"));
+        CORBA_SeqUtil.push_back(nvholder,
+                                 NVUtil.newNV("dataport.subscription_type",
+                                 "new"));
+        prof.properties = nvholder.value;
+        ConnectorProfileHolder cprof =  new ConnectorProfileHolder(prof);
+        Properties prop = new Properties();
+        ConnectorBase.ConnectorInfo profile
+            = new ConnectorBase.ConnectorInfo(cprof.value.name,
+                                 cprof.value.connector_id,
+                                 CORBA_SeqUtil.refToVstring(cprof.value.ports),
+                                 prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        listeners.connectorData_[ConnectorListenerType.ON_SENDER_ERROR].addObserver(new Listener("test"));
+        provider.setListener(profile, listeners);
+
         byte[] cdr_data = new byte[256];
         OpenRTM.CdrDataHolder cdr_data_ref = new OpenRTM.CdrDataHolder(cdr_data);
 
@@ -152,6 +198,19 @@ public class OutPortCorbaCdrProviderTest extends TestCase {
         retcode = provider.get(cdr_data_ref);
         assertEquals("3",OpenRTM.PortStatus.UNKNOWN_ERROR, retcode);
         
+        {
+        try {
+            OutPortConnector connector = new OutPortPullConnector(profile,
+                                                provider,
+                                                listeners);
+            provider.setConnector(connector);
+        }
+        catch (Exception e) {
+        }
+        }
+        Properties props = new Properties();
+        props.setProperty("read.empty_policy","do_nothing");
+        buffer.init(props);
         provider.setBuffer(buffer);
 
         //get() is called without setting data. (empty)
@@ -160,14 +219,18 @@ public class OutPortCorbaCdrProviderTest extends TestCase {
 
         byte testdata[] = { 4, 8, 15, 16, 23, 42, 49, 50};
         OutputStream cdr = toStream(testdata, 0, 0);
-        //buffer.write(cdr.create_input_stream());
         buffer.write(cdr);
+        provider.setBuffer(buffer);
 
         retcode = provider.get(cdr_data_ref);
         assertEquals("5",OpenRTM.PortStatus.PORT_OK, retcode);
 
-        org.omg.CORBA.Any any = ORBUtil.getOrb().create_any();
-        OutputStream ostream = any.create_output_stream();
+        java.util.Properties uprops = new java.util.Properties();
+        uprops.put("org.omg.CORBA.ORBInitialPort", "2809");
+        uprops.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        ORB orb = ORB.init(new String[0], uprops);
+        OutputStream ostream
+                = new EncapsOutputStreamExt(orb,true);
         ostream.write_octet_array(cdr_data_ref.value,0,cdr_data_ref.value.length);
         
         RTC.TimedOctetSeqHolder holder 
