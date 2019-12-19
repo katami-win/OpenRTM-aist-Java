@@ -426,6 +426,10 @@ public class OutPortPushConnectorTest extends TestCase {
                       new PublisherNewMock(),
                       new PublisherNewMock());
 
+          factory1.addFactory("nonblock",
+                      new PublisherNewMock(),
+                      new PublisherNewMock());
+
           final BufferFactory<RingBuffer<OutputStream>,String> factoryB 
               = BufferFactory.instance();
           factoryB.addFactory("ring_buffer",
