@@ -6,6 +6,7 @@ import jp.go.aist.rtm.RTC.util.ORBUtil;
 import junit.framework.TestCase;
 
 import org.omg.CORBA.Any;
+import org.omg.CORBA.TCKind;
 
 import _SDOPackage.NVListHolder;
 import _SDOPackage.NameValue;
@@ -117,10 +118,22 @@ public class OutPortProviderTest extends TestCase {
         assertFalse(index1 == -1);
         assertFalse(index2 == -1);
         
-        String value1 = profile.value[index1].value.extract_wstring();
+        String value1;
+        if( profile.value[index1].value.type().kind() == TCKind.tk_wstring ) {
+            value1 = profile.value[index1].value.extract_wstring();
+        }
+        else {
+            value1 = profile.value[index1].value.extract_string();
+        }
         assertEquals("PROPERTY_VALUE1", value1);
 
-        String value2 = profile.value[index2].value.extract_wstring();
+        String value2;
+        if( profile.value[index2].value.type().kind() == TCKind.tk_wstring ) {
+            value2 = profile.value[index2].value.extract_wstring();
+        }
+        else {
+            value2 = profile.value[index2].value.extract_string();
+        }
         assertEquals("PROPERTY_VALUE2", value2);
     }
 }
