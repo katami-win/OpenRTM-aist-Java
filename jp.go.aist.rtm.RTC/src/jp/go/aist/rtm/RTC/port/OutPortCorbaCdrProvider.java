@@ -163,14 +163,13 @@ public class OutPortCorbaCdrProvider extends OutPortCdrPOA implements OutPortPro
         OutputStream cdr = null;
         DataRef<OutputStream> cdr_ref = new DataRef<OutputStream>(cdr);
         jp.go.aist.rtm.RTC.buffer.ReturnCode ret 
-                          = m_buffer.read(cdr_ref,0,0);
+                          = m_buffer.read(cdr_ref,-1,0);
 
         if (ret.equals(jp.go.aist.rtm.RTC.buffer.ReturnCode.BUFFER_OK)) {
 
             EncapsOutputStreamExt outcdr;
             outcdr = (EncapsOutputStreamExt)cdr_ref.v;
             data.value =  outcdr.getByteArray();
-
         }
         return convertReturn(ret);
     }
