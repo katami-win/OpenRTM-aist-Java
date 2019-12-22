@@ -84,8 +84,7 @@ public class LogbufTest extends TestCase {
         // 何も出力されなければOK.
         String expected = "";
         assertEquals(expected, handler.getStr());
-
-        rtcout.setEnabled();
+	rtcout.setEnabled();
         System.err.println("--- test_case0() addStream(STDOUT) set ---");
         rtcout.println(Logbuf.PARANOID, "PARANOID string to STDOUT 2");
         rtcout.println(Logbuf.VERBOSE, "VERBOSE string to STDOUT 2");
@@ -97,15 +96,15 @@ public class LogbufTest extends TestCase {
         rtcout.println(Logbuf.FATAL, "FATAL string to STDOUT 2");
         rtcout.println(Logbuf.SILENT, "SILENT string to STDOUT 2");
         // setLevel()以下の内容が、出力されればOK.
-        expected = "00 000 test0 PARANOID : PARANOID string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 VERBOSE  : VERBOSE string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 TRACE    : TRACE string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 DEBUG    : DEBUG string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 INFO     : INFO string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 WARN     : WARN string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 ERROR    : ERROR string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 FATAL    : FATAL string to STDOUT 2" + System.getProperty("line.separator") +
-                   "00 000 test0 SILENT   : SILENT string to STDOUT 2" + System.getProperty("line.separator");
+        expected = "\u001b[00;37m00 000 test0 PARANOID : PARANOID string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;39m00 000 test0 VERBOSE  : VERBOSE string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;36m00 000 test0 TRACE    : TRACE string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;32m00 000 test0 DEBUG    : DEBUG string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;34m00 000 test0 INFO     : INFO string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;33m00 000 test0 WARN     : WARN string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;35m00 000 test0 ERROR    : ERROR string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00;31m00 000 test0 FATAL    : FATAL string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
+                   "\u001b[00m00 000 test0 SILENT   : SILENT string to STDOUT 2\u001b[00m" + System.getProperty("line.separator");
         assertEquals(expected, handler.getStr());
     }
 
