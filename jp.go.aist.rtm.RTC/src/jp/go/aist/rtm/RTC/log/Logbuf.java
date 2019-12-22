@@ -127,7 +127,6 @@ public class Logbuf {
     private static Level rtm_level=null;
 
     private void _constructor(){
-
         if(rtm_level==null){
             for(int ic=PARANOID;ic<=SILENT;++ic){
                 int num = RTMLevelToLogLevel(ic);
@@ -155,15 +154,15 @@ public class Logbuf {
         }
         final  String color[] =
         {
-            "\u001b[00m",         // SLILENT  (none)
-            "\u001b[00;31m", // FATAL    (red)
-            "\u001b[00;35m", // ERROR    (magenta)
-            "\u001b[00;33m", // WARN     (yellow)
-            "\u001b[00;34m", // INFO     (blue)
-            "\u001b[00;32m", // DEBUG    (green)
-            "\u001b[00;36m", // TRACE    (cyan)
+            "\u001b[00;37m", // PARANOID (white)
             "\u001b[00;39m", // VERBOSE  (default)
-            "\u001b[00;37m"  // PARANOID (white)
+            "\u001b[00;36m", // TRACE    (cyan)
+            "\u001b[00;32m", // DEBUG    (green)
+            "\u001b[00;34m", // INFO     (blue)
+            "\u001b[00;33m", // WARN     (yellow)
+            "\u001b[00;35m", // ERROR    (magenta)
+            "\u001b[00;31m", // FATAL    (red)
+            "\u001b[00m",         // SLILENT  (none)
         };
 //        StringBuilder sb = new StringBuilder();
 //
