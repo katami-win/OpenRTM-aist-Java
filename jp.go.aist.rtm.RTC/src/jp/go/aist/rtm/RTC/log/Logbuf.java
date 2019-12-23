@@ -332,6 +332,22 @@ public class Logbuf {
      }
 
     /**
+     * <p>全てのストリームを削除する。</p>
+     *
+     * 
+     */
+     public void removeStreamAll() {
+
+        Handler[] h = m_Logger.getHandlers();
+        m_HandlerCount = h.length;
+        for(int ic=h.length;ic>0;--ic){
+            m_Logger.removeHandler(h[ic-1]);
+        }
+        Handler[] h2 = m_Logger.getHandlers();
+        m_HandlerCount = h2.length;
+     }
+
+    /**
      * <p>ハンドラの数を取得する。</p>
      *
      * @return int
