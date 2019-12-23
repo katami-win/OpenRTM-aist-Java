@@ -2409,7 +2409,7 @@ public class Manager {
         else {
             rtcout.println(Logbuf.DEBUG, 
                 "Factory found: "+comp_id.getProperty("implementation_id"));
-            factory.destroy(comp);
+            comp = factory.destroy(comp);
         } 
         String shutdown_on_nortcs 
             = m_config.getProperty("manager.shutdown_on_nortcs") ;
