@@ -189,6 +189,7 @@ public class PublisherPeriodicTests extends TestCase {
         super.tearDown();
 //        rtcout.removeStream(m_stdout);
         rtcout.removeStream(m_fh);
+        rtcout.removeStreamAll();
     }
     /**
      * <p> init() </p>

@@ -224,6 +224,8 @@ public class InPortPushConnectorTest extends TestCase {
             m_orb.destroy();
             m_orb = null;
         }
+        rtcout.removeStream(m_fh);
+        rtcout.removeStreamAll();
     }
 		
     /**

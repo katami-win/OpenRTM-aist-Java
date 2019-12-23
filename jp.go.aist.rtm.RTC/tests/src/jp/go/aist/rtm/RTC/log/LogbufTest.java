@@ -68,7 +68,7 @@ public class LogbufTest extends TestCase {
         LocalHandler handler = new LocalHandler();
         rtcout.addStream(handler);
         rtcout.setClockType("logical");
-//        rtcout.addStream(new ConsoleHandler());
+        rtcout.addStream(new ConsoleHandler());
         System.err.println("--- test_case0() addStream(STDOUT) set ---");
 
         rtcout.setDisabled();
@@ -106,6 +106,8 @@ public class LogbufTest extends TestCase {
                    "\u001b[00;31m00 000 test0 FATAL    : FATAL string to STDOUT 2\u001b[00m" + System.getProperty("line.separator") +
                    "\u001b[00m00 000 test0 SILENT   : SILENT string to STDOUT 2\u001b[00m" + System.getProperty("line.separator");
         assertEquals(expected, handler.getStr());
+        rtcout.removeStream(handler);
+        rtcout.removeStreamAll();
     }
 
     /**
@@ -324,6 +326,7 @@ public class LogbufTest extends TestCase {
         // 何も出力されなければOK.
         expected = "";
         assertEquals(expected, handler.getStr());
+        rtcout.removeStream(handler);
 
     }
 
@@ -537,6 +540,7 @@ public class LogbufTest extends TestCase {
         // 何も出力されなければOK.
         expected = "";
         assertEquals(expected, handler.getStr());
+        rtcout.removeStream(handler);
         
     }
 
@@ -555,8 +559,11 @@ public class LogbufTest extends TestCase {
 
         // PARANOID check
         String logfile = "./rtc01.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -593,6 +600,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("PARANOID cnt=" + Integer.toString(cnt) );
         assertEquals(9, cnt);
+        rtcout.removeStream(handler);
 
     }
 
@@ -612,8 +620,11 @@ public class LogbufTest extends TestCase {
 
         // VERBOSE check
         String logfile = "./rtc02.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -650,6 +661,7 @@ public class LogbufTest extends TestCase {
 //      System.out.println("VERBOSE cnt=" + Integer.toString(cnt) );
         assertEquals(8, cnt);
         //-----------------------------------------------------------------
+        rtcout.removeStream(handler);
 
     }
 
@@ -669,8 +681,11 @@ public class LogbufTest extends TestCase {
 
         // TRACE check
         String logfile = "./rtc03.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -706,6 +721,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("TRACE cnt=" + Integer.toString(cnt) );
         assertEquals(7, cnt);
+        rtcout.removeStream(handler);
 
     }
 
@@ -725,8 +741,11 @@ public class LogbufTest extends TestCase {
 
         // DEBUG check
         String logfile = "./rtc04.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -762,6 +781,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("DEBUG cnt=" + Integer.toString(cnt) );
         assertEquals(6, cnt);
+        rtcout.removeStream(handler);
 
     }
 
@@ -781,8 +801,11 @@ public class LogbufTest extends TestCase {
 
         // INFO check
         String logfile = "./rtc05.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -818,6 +841,8 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("INFO cnt=" + Integer.toString(cnt) );
         assertEquals(5, cnt);
+        rtcout.removeStream(handler);
+
 
     }
 
@@ -837,8 +862,11 @@ public class LogbufTest extends TestCase {
 
         // WARN check
         String logfile = "./rtc06.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -874,6 +902,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("WARN cnt=" + Integer.toString(cnt) );
         assertEquals(4, cnt);
+        rtcout.removeStream(handler);
 
     }
 
@@ -893,8 +922,11 @@ public class LogbufTest extends TestCase {
 
         // ERROR check
         String logfile = "./rtc07.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -930,6 +962,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("ERROR cnt=" + Integer.toString(cnt) );
         assertEquals(3, cnt);
+        rtcout.removeStream(handler);
 
     }
 
@@ -949,8 +982,11 @@ public class LogbufTest extends TestCase {
 
         // FATAL check
         String logfile = "./rtc08.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -986,6 +1022,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("FATAL cnt=" + Integer.toString(cnt) );
         assertEquals(2, cnt);
+        rtcout.removeStream(handler);
 
     }
 
@@ -1005,8 +1042,11 @@ public class LogbufTest extends TestCase {
 
         // SILENT check
         String logfile = "./rtc09.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -1042,6 +1082,7 @@ public class LogbufTest extends TestCase {
         }
 //      System.out.println("SILENT cnt=" + Integer.toString(cnt) );
         assertEquals(0, cnt);
+        rtcout.removeStream(handler);
 
 
     }
@@ -1055,7 +1096,9 @@ public class LogbufTest extends TestCase {
         System.err.println("\n\n--- test_strToLogLevel() check ---");
 
         Logbuf rtcout = new Logbuf("test_strToLogLevel");
-        rtcout.addStream(new ConsoleHandler());
+        ConsoleHandler handler = new ConsoleHandler();
+        rtcout.addStream(handler);
+        //rtcout.addStream(new ConsoleHandler());
         rtcout.setLevel("PARANOID");
 
         int lv = 0;
@@ -1090,6 +1133,7 @@ public class LogbufTest extends TestCase {
         assertEquals(Logbuf.SILENT, lv);
 
         System.err.println("--- test_strToLogLevel() is OK ---");
+        rtcout.removeStream(handler);
     }
 
     /**
@@ -1101,7 +1145,9 @@ public class LogbufTest extends TestCase {
         System.err.println("\n\n--- test_setDateFormat() check ---");
 
         Logbuf rtcout = new Logbuf("test_setDateFormat");
-        rtcout.addStream(new ConsoleHandler());
+        ConsoleHandler handler = new ConsoleHandler();
+        rtcout.addStream(handler);
+        //rtcout.addStream(new ConsoleHandler());
         rtcout.setLevel("PARANOID");
         String format = new String();
 
@@ -1121,6 +1167,7 @@ public class LogbufTest extends TestCase {
         // 日付と時刻のパターンが、YYYY/MM/DD pp II:MI:SS であれがOK
 
         System.err.println("--- test_setDateFormat() is OK ---");
+        rtcout.removeStream(handler);
     }
 
     /*** （参考）
@@ -1152,8 +1199,11 @@ public class LogbufTest extends TestCase {
         rtcout.addStream(stdout);
 
         String logfile = "./rtc10.log";
+        FileHandler handler = null;
         try {
-            rtcout.addStream(new FileHandler(logfile));
+            handler = new FileHandler(logfile);
+            rtcout.addStream(handler);
+            //rtcout.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -1268,6 +1318,8 @@ public class LogbufTest extends TestCase {
         cnt2 = rtcout.getStreamCount();
         assertEquals(cnt+1, cnt2);
         System.err.println("--- test_manager_logbuf() end ---");
+        rtcout.removeStream(handler);
+        rtcout.removeStreamAll();
 
     }
 
@@ -1331,8 +1383,11 @@ public class LogbufTest extends TestCase {
         rtcout2.addStream(stdout);
 
         String logfile = "./rtc11.log";
+        FileHandler handler2 = null;
         try {
-            rtcout2.addStream(new FileHandler(logfile));
+            handler2 = new FileHandler(logfile);
+            rtcout2.addStream(handler2);
+            //rtcout2.addStream(new FileHandler(logfile));
         } catch(IOException ex) {
             System.err.println("Error: cannot open logfile: " + logfile );
         }
@@ -1395,6 +1450,7 @@ public class LogbufTest extends TestCase {
         // setLevel()以下の内容が、出力されればOK.
 
         System.err.println("--- test_manager_logbuf2() end ---");
+        rtcout2.removeStream(handler2);
 
     }
 
