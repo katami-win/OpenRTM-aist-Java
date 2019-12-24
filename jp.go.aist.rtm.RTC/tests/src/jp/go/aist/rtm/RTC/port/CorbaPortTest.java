@@ -111,13 +111,13 @@ public class CorbaPortTest extends TestCase {
         private boolean m_hello_world_called;
     }
 
-//    private CorbaPort m_port0;
-//    private Port m_port0ref;
+    private CorbaPort m_port0;
+    private PortService m_port0ref;
 //    private MyService_impl m_mysvc0 = new MyService_impl();
 //    private CorbaConsumer<MyService> m_cons0 = new CorbaConsumer<MyService>(MyService.class);
     
 //    private CorbaPort m_port1;
-//    private Port m_port1ref;
+    private PortService m_port1ref;
 //    private MyService_impl m_mysvc1 = new MyService_impl();
 //    private CorbaConsumer<MyService> m_cons1 = new CorbaConsumer<MyService>(MyService.class);
     
@@ -164,7 +164,6 @@ public class CorbaPortTest extends TestCase {
      * </p>
      */
     public void test_ifprofile() {
-/*
         // Port0
         PortProfile prof0 = this.m_port0ref.get_port_profile();
         assertEquals("port0", prof0.name);
@@ -226,7 +225,6 @@ public class CorbaPortTest extends TestCase {
         assertFalse(idx1_1 == -1);
         assertEquals("Generic", iflist1[idx1_1].type_name);
         assertEquals(PortInterfacePolarity.REQUIRED, iflist1[idx1_1].polarity);
-*/
     }
 
     /**
