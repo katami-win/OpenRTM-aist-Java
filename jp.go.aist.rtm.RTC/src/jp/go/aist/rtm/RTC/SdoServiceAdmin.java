@@ -89,7 +89,7 @@ public class  SdoServiceAdmin {
      */
     public SdoServiceAdmin(RTObject_impl rtobj) {
         m_rtobj = rtobj;
-        m_allConsumerEnabled = true;
+        m_allConsumerEnabled = false;
         rtcout = new Logbuf("SdoServiceAdmin");
         rtcout.println(Logbuf.TRACE, "SdoServiceAdmin.SdoServiceAdmin(" + rtobj.getProperties().getProperty("instance_name") + ")");
 
