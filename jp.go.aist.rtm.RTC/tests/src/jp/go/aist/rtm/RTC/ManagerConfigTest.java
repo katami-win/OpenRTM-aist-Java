@@ -71,11 +71,11 @@ public class ManagerConfigTest extends TestCase {
         
         // システム情報のプロパティが、取得内容に含まれているか？
         // （システム情報は動作環境に依存するので、プロパティが取得できていることだけを確認する）
-        assertFalse( properties.getProperty("manager.os.name").equals(""));
-        assertFalse( properties.getProperty("manager.os.release").equals(""));
-        assertFalse( properties.getProperty("manager.os.version").equals(""));
-        assertFalse( properties.getProperty("manager.os.arch").equals(""));
-        assertFalse( properties.getProperty("manager.os.hostname").equals(""));
+        assertFalse( properties.getProperty("os.name").equals(""));
+        assertFalse( properties.getProperty("os.release").equals(""));
+        assertFalse( properties.getProperty("os.version").equals(""));
+        assertFalse( properties.getProperty("os.arch").equals(""));
+        assertFalse( properties.getProperty("os.hostname").equals(""));
         assertFalse( properties.getProperty("manager.pid").equals(""));
     }
 
@@ -95,30 +95,20 @@ public class ManagerConfigTest extends TestCase {
         // 設定されている内容を正しく取得できるか？
         Properties properties = new Properties();
         mgrCfg.configure(properties);
-
-        assertEquals("DEFAULT.RTC.COMPONENT.CONF.PATH", properties.getProperty("rtc.component.conf.path"));
-        assertEquals("DEFAULT.RTC.MANAGER.ARCH", properties.getProperty("rtc.manager.arch"));
-        assertEquals("DEFAULT.RTC.MANAGER.DEBUG.LEVEL", properties.getProperty("rtc.manager.debug.level"));
-        assertEquals("DEFAULT.RTC.MANAGER.LANGUAGE", properties.getProperty("rtc.manager.language"));
-        assertEquals("DEFAULT.RTC.MANAGER.NAMESERVER", properties.getProperty("rtc.manager.nameserver"));
-        assertEquals("DEFAULT.RTC.MANAGER.OPENING_MESSAGE", properties.getProperty("rtc.manager.opening_message"));
-        assertEquals("DEFAULT.RTC.MANAGER.ORB", properties.getProperty("rtc.manager.orb"));
-        assertEquals("DEFAULT.RTC.MANAGER.ORB.OPTIONS", properties.getProperty("rtc.manager.orb.options"));
-        assertEquals("DEFAULT.RTC.MANAGER.OS", properties.getProperty("rtc.manager.os"));
-        assertEquals("DEFAULT.RTC.MANAGER.OS.RELEASE", properties.getProperty("rtc.manager.os.release"));
-        assertEquals("DEFAULT.RTC.MANAGER.SUBSYSTEMS", properties.getProperty("rtc.manager.subsystems"));
-        assertEquals("DEFAULT.RTC.OPENRTM.AUTHOR", properties.getProperty("rtc.openrtm.author"));
-        assertEquals("DEFAULT.RTC.OPENRTM.RELEASE", properties.getProperty("rtc.openrtm.release"));
-        assertEquals("DEFAULT.RTC.OPENRTM.VENDOR", properties.getProperty("rtc.openrtm.vendor"));
-        assertEquals("DEFAULT.RTC.OPENRTM.VERSION", properties.getProperty("rtc.openrtm.version"));
+        assertEquals("", properties.getProperty("module.conf_path"));
+        assertEquals("INFO", properties.getProperty("logger.log_level"));
+        assertEquals("Java", properties.getProperty("manager.language"));
+        assertEquals("default", properties.getProperty("manager.nameservers"));
+        assertEquals("", properties.getProperty("corba.args"));
+        assertEquals("orbd", properties.getProperty("corba.id"));
         
         // システム情報のプロパティが、取得内容に含まれているか？
         // （システム情報は動作環境に依存するので、プロパティが取得できていることだけを確認する）
-        assertFalse( properties.getProperty("manager.os.name").equals(""));
-        assertFalse( properties.getProperty("manager.os.release").equals(""));
-        assertFalse( properties.getProperty("manager.os.version").equals(""));
-        assertFalse( properties.getProperty("manager.os.arch").equals(""));
-        assertFalse( properties.getProperty("manager.os.hostname").equals(""));
+        assertFalse( properties.getProperty("os.name").equals(""));
+        assertFalse( properties.getProperty("os.release").equals(""));
+        assertFalse( properties.getProperty("os.version").equals(""));
+        assertFalse( properties.getProperty("os.arch").equals(""));
+        assertFalse( properties.getProperty("os.hostname").equals(""));
         assertFalse( properties.getProperty("manager.pid").equals(""));
     }
     
