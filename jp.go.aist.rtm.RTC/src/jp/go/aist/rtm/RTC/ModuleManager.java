@@ -1247,8 +1247,10 @@ public class ModuleManager {
                     }
                     if(result.indexOf(str)==-1){
                         result.add(str);
-                        for (File child : item.listFiles()){
-                            stack.push(child);
+                        if(item.listFiles()!=null){
+                            for (File child : item.listFiles()){
+                                stack.push(child);
+                            }
                         }
                     }
                 }
