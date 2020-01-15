@@ -761,9 +761,9 @@ implements Runnable, ObjectCreator<ExecutionContextBase>, ObjectDestructor, Exec
     public ReturnCode_t reset_component(LightweightRTObject comp){
 
         rtcout.println(Logbuf.TRACE, "ExtTrigExecutionContext.reset_component()");
-        return removeComponent(comp);
+        return resetComponent(comp);
     }
-    public ReturnCode_t resetCcomponent(LightweightRTObject comp){
+    public ReturnCode_t resetComponent(LightweightRTObject comp){
 
         rtcout.println(Logbuf.TRACE, "ExtTrigExecutionContext.resetComponent()");
 
