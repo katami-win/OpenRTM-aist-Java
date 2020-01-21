@@ -186,7 +186,7 @@ public class  SdoServiceAdmin {
                 CORBA_SeqUtil.push_back(prof2, sspb.getProfile());
             }
         }
-        return prof.value;
+        return prof2.value;
     }
 
     /**
