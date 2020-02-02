@@ -324,9 +324,17 @@ public class ManagerTest extends TestCase {
         if(m_mgr!=null){
             Properties properties = m_mgr.getConfig();
             String rtcname = properties.getProperty("logger.file_name");
-            File file = new File(rtcname);
-            if (file.exists()){
-                file.delete();
+            rtcname = rtcname.replace("./","");
+            File dir = new File("./");
+            String[] files = dir.list();
+            for(String fname : files){
+                if(fname.matches(rtcname+".+")){
+                    System.out.println(fname);
+                    File file = new File(fname);
+                    if (file.exists()){
+                        file.delete();
+                    }
+                }
             }
         }
         m_mgr = null;
@@ -404,7 +412,15 @@ public class ManagerTest extends TestCase {
      */
     public void test_instance_without_init() {
         // 事前にinit()を呼出さずにinstance()を呼出した場合、正常にインスタンスが生成されるか？
-        assertNotNull(Manager.instance());
+        Manager manager = Manager.instance();
+        assertNotNull(manager);
+        //assertNotNull(Manager.instance());
+        Properties properties = manager.getConfig();
+        String rtcname = properties.getProperty("logger.file_name");
+        File file = new File(rtcname);
+        if (file.exists()){
+            file.delete();
+        }
     }
 
     /**
@@ -480,6 +496,11 @@ public class ManagerTest extends TestCase {
         Properties properties = m_mgr.getConfig();
         assertEquals("yes", properties.getProperty("logger.enable"));
         assertEquals("fixture2.log", properties.getProperty("logger.file_name"));
+        String rtcname = properties.getProperty("logger.file_name");
+        File file = new File(rtcname);
+        if (file.exists()){
+            file.delete();
+        }
     }
 
     /**
@@ -1051,7 +1072,7 @@ public class ManagerTest extends TestCase {
             "-o","logger.file_name:logging",
             "-o","timer.enable:YES",
             "-o","timer.tick:1000",
-            "-o","logger.enable;no",
+            "-o","logger.enable:no",
             "-o","manager.name:test",
             "-o","logger.date_format:xxx",
             "-o","manager.shutdown_on_nortcs:no",
@@ -1185,6 +1206,7 @@ public class ManagerTest extends TestCase {
         Manager manager = Manager.instance();
         assertNotNull(manager.m_pORB);
         assertNotNull(manager.m_namingManager);
+
    }
 
     /**

@@ -45,7 +45,6 @@ public class ManagerServantTest extends TestCase {
         "exported_ports",    "",
         "conf.default.members", "",
         "conf.default.exported_ports", "",
-        "",""
     };
 
     public static final String[] str_consolein_spec = {
@@ -89,6 +88,7 @@ public class ManagerServantTest extends TestCase {
         "os.version",               "2.6.24-23-generic",
         "os.arch",                  "i386",
         "os.hostname",              "ubuntu804-kz",
+        "logger.enable",            "NO",
         "",""
     };
 
@@ -135,6 +135,7 @@ public class ManagerServantTest extends TestCase {
         "exec_cxt.periodic.type", "jp.go.aist.rtm.RTC.executionContext.PeriodicExecutionContext",
         "exec_cxt.periodic.rate", "1000",
         "exec_cxt.evdriven.type", "jp.go.aist.rtm.RTC.executionContext.EventDrivenExecutionContext",
+        "manager.shutdown_on_nortcs", "NO",
         "",""
     };
 
@@ -148,6 +149,8 @@ public class ManagerServantTest extends TestCase {
         "manager.os.version",     "2.6.24-23-generic",
         "manager.os.arch",        "i386",
         "manager.os.hostname",    "ubuntu804-kz",
+        "logger.enable",          "NO",
+        "manager.shutdown_on_nortcs", "NO",
         "",""
     };
 
@@ -194,16 +197,24 @@ public class ManagerServantTest extends TestCase {
                 this.m_pORB.resolve_initial_references("RootPOA"));
         this.m_pPOA.the_POAManager().activate();
         String args[] = {
-            "-o","logger.enable:no"
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
         };
         manager = Manager.init(args);
+        manager.activateManager();
+        manager.runManager(true);
     }
 
     protected void tearDown() throws Exception {
         super.tearDown();
+        Properties properties = manager.getConfig();
+        String rtcname = properties.getProperty("logger.file_name");
+
         manager.shutdownComponents();
         manager.shutdownNaming();
-        manager = null;
+        manager.shutdownManager();
+
+	manager = null;
     }
 
     /**
@@ -351,23 +362,26 @@ public class ManagerServantTest extends TestCase {
      * </p>
      */
     public void test_get_factory_profiles() {
-        int num = 13;
+        int num = str_composite_spec.length/2 ;
         // Properties設定
         data_struct[] composite_spec = new data_struct[num];
         for(int i=0, j=0; i<num; ++i, j+=2) {
             composite_spec[i] = new data_struct(str_composite_spec[j], str_composite_spec[j+1]);
         }
-
-        data_struct[] consolein_spec = new data_struct[10];
-        for(int i=0, j=0; i<10; ++i, j+=2) {
+        int in_length = str_consolein_spec.length/2;
+        data_struct[] consolein_spec = new data_struct[in_length];
+        for(int i=0, j=0; i<in_length; ++i, j+=2) {
             consolein_spec[i] = new data_struct(str_consolein_spec[j], str_consolein_spec[j+1]);
         }
 
-        data_struct[] consoleout_spec = new data_struct[10];
-        for(int i=0, j=0; i<10; ++i, j+=2) {
+        int out_length = str_consoleout_spec.length/2;
+        data_struct[] consoleout_spec = new data_struct[out_length];
+        for(int i=0, j=0; i<out_length; ++i, j+=2) {
             consoleout_spec[i] = new data_struct(str_consoleout_spec[j], str_consoleout_spec[j+1]);
         }
 
+
+        manager.clearModulesFactories();
         ManagerServant pman = new ManagerServant();
         ReturnCode_t ret = ReturnCode_t.RTC_ERROR;
 
@@ -394,23 +408,9 @@ public class ManagerServantTest extends TestCase {
 
         //Check returns(ModuleProfileList).
         int len, pos;
-        assertEquals(3, profiles.length);
-        pos = 0;
-        len = profiles[pos].properties.length;
-        assertEquals(num, len);
+        assertEquals(2, profiles.length);
         String ch = new String();
-        for(int ic=0; ic < len; ++ic) {
-            assertEquals(composite_spec[ic].name, profiles[pos].properties[ic].name);
-            if(profiles[pos].properties[ic].value.type().kind() == TCKind.tk_wstring ) {
-                ch = profiles[pos].properties[ic].value.extract_wstring();
-            }
-            else{
-                ch = profiles[pos].properties[ic].value.extract_string();
-            }
-            assertEquals(composite_spec[ic].value, ch);
-        }
-
-        pos = 1;
+        pos = 0;
         len = profiles[pos].properties.length;
         assertEquals(10, len);
         for(int ic=0; ic < len; ++ic) {
@@ -424,7 +424,7 @@ public class ManagerServantTest extends TestCase {
             assertEquals(consolein_spec[ic].value, ch);
         }
 
-        pos = 2;
+        pos = 1;
         len = profiles[pos].properties.length;
         assertEquals(10, len);
         for(int ic=0; ic < len; ++ic) {
@@ -469,7 +469,6 @@ public class ManagerServantTest extends TestCase {
         RTC.RTObject outobj;
         outobj = pman.create_component("ConsoleOut");
         assertNotNull(outobj);
-
     }
 
     /**

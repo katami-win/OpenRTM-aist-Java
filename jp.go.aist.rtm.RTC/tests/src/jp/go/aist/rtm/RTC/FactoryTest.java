@@ -31,7 +31,10 @@ public class FactoryTest extends TestCase {
      * </p>
      */
     public void test_create_destroy() {
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o", "logger.enable: NO",
+        };
+        Manager manager = Manager.init(args);
 
         String component_conf[] = {
                 "implementation_id", "sample",
@@ -65,7 +68,10 @@ public class FactoryTest extends TestCase {
      * </p>
      */
     public void test_number() {
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o", "logger.enable: NO",
+        };
+        Manager manager = Manager.init(args);
         
         String component_conf[] = {
                 "implementation_id", "sample",

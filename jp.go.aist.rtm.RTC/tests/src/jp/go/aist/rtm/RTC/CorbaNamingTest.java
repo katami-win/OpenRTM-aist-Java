@@ -34,7 +34,7 @@ public class CorbaNamingTest extends TestCase {
         rootPath = rootPath.substring(0,rootPath.length()-1);
         String param[] = {
             "-o","corba.nameservers:localhost",
-            "-o","naming.formats: n.rtc",
+            "-o","naming.formats:%n.rtc",
             "-o","corba.id:omniORB",
             "-o","corba.endpoint:",
             "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
@@ -42,8 +42,9 @@ public class CorbaNamingTest extends TestCase {
             "-o","logger.file_name:logging",
             "-o","timer.enable:yes",
             "-o","timer.tick:1000",
-            "-o","logger.enable:yes",
+            "-o","logger.enable:no",
             "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
             "-o","exec_cxt.evdriven.type:jp.go.aist.rtm.RTC.executionContext.ExtTrigExecutionContext"};
         manager = Manager.init(param);
         manager.activateManager();

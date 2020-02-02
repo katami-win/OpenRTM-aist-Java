@@ -19,7 +19,6 @@ import RTC.ExecutionContextServiceListHolder;
 import RTC.ExecutionKind;
 import OpenRTM.ExtTrigExecutionContextService;
 import RTC.LifeCycleState;
-import RTC.LightweightRTObject;
 import RTC.PortServiceListHolder;
 import RTC.RTObject;
 import RTC.ReturnCode_t;
@@ -87,6 +86,7 @@ public class ExTrigTest extends SampleTest {
             "-o","logger.enable:no",
             "-o","manager.name:test",
             "-o","exec_cxt.periodic.rate:1",
+            "-o","manager.shutdown_on_nortcs:no",
             "-o","exec_cxt.periodic.type:jp.go.aist.rtm.RTC.executionContext.ExtTrigExecutionContext",
         };
         manager = Manager.init(args);
@@ -250,7 +250,7 @@ public class ExTrigTest extends SampleTest {
         assertEquals(LifeCycleState.INACTIVE_STATE, execlist.value[0].get_component_state(coninRef));
         ec1Ref.tick();
         Thread.yield();
-        assertEquals(LifeCycleState.ACTIVE_STATE, execlist.value[0].get_component_state(coninRef));
+        assertEquals(LifeCycleState.ACTIVE_STATE.value(), execlist.value[0].get_component_state(coninRef).value());
         for(int intIdx=0;intIdx<40;intIdx++) {
             ec1Ref.tick();
             Thread.yield();
