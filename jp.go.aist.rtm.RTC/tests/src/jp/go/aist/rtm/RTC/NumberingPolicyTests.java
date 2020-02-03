@@ -17,7 +17,7 @@ public class NumberingPolicyTests extends TestCase {
     
     private ORB m_pORB;
     private POA m_pPOA;
-    
+    private Manager manager;
 
     protected void setUp() throws Exception {
         super.setUp();
@@ -37,10 +37,18 @@ public class NumberingPolicyTests extends TestCase {
 
     protected void tearDown() throws Exception {
         super.tearDown();
+        manager.shutdownComponents();
+        manager.shutdownNaming();
+        manager.shutdownManager();
         this.m_pORB.destroy();
     }
     private RTObject_impl prepareRTObject() {
-        Manager manager = Manager.instance();
+        //Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        manager = Manager.init(args);
         manager.activateManager();
      
         String component_conf[] = {
