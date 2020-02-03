@@ -235,6 +235,7 @@ public class RTObjectTest extends TestCase {
             "-o","timer.tick:1000",
             "-o","logger.enable:no",
             "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
             "-o","exec_cxt.periodic.rate:10",
             "-o","exec_cxt.periodic.type:jp.go.aist.rtm.RTC.executionContext.PeriodicExecutionContext",
         };
