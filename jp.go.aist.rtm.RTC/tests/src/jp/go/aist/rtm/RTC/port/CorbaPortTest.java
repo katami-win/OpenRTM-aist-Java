@@ -123,10 +123,21 @@ public class CorbaPortTest extends TestCase {
     
     private OrbRunner m_orbRunner;
 
+    private ORB m_orb;
+    private POA m_poa;
+
     
     protected void setUp() throws Exception {
         super.setUp();
 
+        // (1-1) ORBの初期化
+        java.util.Properties props = new java.util.Properties();
+        this.m_orb = ORB.init(new String[0], props);
+
+        // (1-2) POAManagerのactivate
+        this.m_poa = org.omg.PortableServer.POAHelper.narrow(
+                this.m_orb.resolve_initial_references("RootPOA"));
+        this.m_poa.the_POAManager().activate();
         this.m_orbRunner = new OrbRunner();
         this.m_orbRunner.start();
 /*
@@ -164,9 +175,30 @@ public class CorbaPortTest extends TestCase {
      * </p>
      */
     public void test_ifprofile() {
+        MyService_impl pMyServiceImpl0
+            = new MyService_impl(); // will be deleted automatically
+        CorbaConsumer<MyService> pMyServiceConsumer0
+            = new CorbaConsumer<MyService>(MyService.class); 
+                                    // will be deleted automatically
+        CorbaPort port0 = new CorbaPort("port0");
+        try {
+            port0.registerProvider("MyService0", "Generic", pMyServiceImpl0);
+            port0.registerConsumer("MyService1", "Generic", pMyServiceConsumer0);
+        } catch (ServantAlreadyActive e) {
+            e.printStackTrace();
+            fail();
+        } catch (WrongPolicy e) {
+            e.printStackTrace();
+            fail();
+        } catch (ObjectNotActive e) {
+            e.printStackTrace();
+            fail();
+        }
+
         // Port0
-        PortProfile prof0 = this.m_port0ref.get_port_profile();
-        assertEquals("port0", prof0.name);
+        RTC.PortService m_port0ref = port0.getPortRef();
+        PortProfile prof0 = m_port0ref.get_port_profile();
+        assertEquals("unknown.port0", prof0.name);
         
         int len0 = prof0.interfaces.length;
         assertEquals(2, len0);
@@ -194,10 +226,31 @@ public class CorbaPortTest extends TestCase {
         assertFalse(idx0_1 == -1);
         assertEquals("Generic", iflist0[idx0_1].type_name);
         assertEquals(PortInterfacePolarity.REQUIRED, iflist0[idx0_1].polarity);
-        
+
+        MyService_impl pMyServiceImpl1
+            = new MyService_impl(); // will be deleted automatically
+        CorbaConsumer<MyService> pMyServiceConsumer1
+            = new CorbaConsumer<MyService>(MyService.class); 
+                                    // will be deleted automatically
+        CorbaPort port1 = new CorbaPort("port1");
+        try {
+            port1.registerProvider("MyService1", "Generic", pMyServiceImpl1);
+            port1.registerConsumer("MyService0", "Generic", pMyServiceConsumer1);
+        } catch (ServantAlreadyActive e) {
+            e.printStackTrace();
+            fail();
+        } catch (WrongPolicy e) {
+            e.printStackTrace();
+            fail();
+        } catch (ObjectNotActive e) {
+            e.printStackTrace();
+            fail();
+        }
+
         // Port1
-        PortProfile prof1 = this.m_port1ref.get_port_profile();
-        assertEquals("port1", prof1.name);
+        RTC.PortService m_port1ref = port1.getPortRef();
+        PortProfile prof1 = m_port1ref.get_port_profile();
+        assertEquals("unknown.port1", prof1.name);
 
         int len1 = prof1.interfaces.length;
         assertEquals(2, len1);
@@ -236,9 +289,8 @@ public class CorbaPortTest extends TestCase {
      * </ul>
      * </p>
      */
-    public void test_connect() {
+    public void test_connect() throws Exception {
 
-System.out.println("test_connect()");
         MyService_impl pMyServiceImplA 
             = new MyService_impl();          // will be deleted automatically
         CorbaConsumer<MyService> pMyServiceConsumerB 
@@ -248,7 +300,16 @@ System.out.println("test_connect()");
             = new MyService_impl();          // will be deleted automatically
         CorbaConsumer<MyService> pMyServiceConsumerA 
             = new CorbaConsumer<MyService>(MyService.class);
-                                             // will be deleted automatically 
+                                             // will be deleted automatically
+        byte[] oid;
+        org.omg.CORBA.Object obj;
+        oid = m_poa.activate_object(pMyServiceImplA);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumerA.setObject(obj);
+
+        oid = m_poa.activate_object(pMyServiceImplB);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumerB.setObject(obj);
 
         CorbaPort port0 = new CorbaPort("name of port0");
         CorbaPort port1 = new CorbaPort("name of port1");
@@ -302,7 +363,7 @@ System.out.println("test_connect()");
     /**
      * <p>ポート間接続の切断をテストします。</p>
      */
-    public void test_disconnect() {
+    public void test_disconnect() throws Exception {
         
         MyService_impl pMyServiceImplA 
             = new MyService_impl();          // will be deleted automatically
@@ -314,6 +375,15 @@ System.out.println("test_connect()");
         CorbaConsumer<MyService> pMyServiceConsumerA 
             = new CorbaConsumer<MyService>(MyService.class);
                                              // will be deleted automatically 
+        byte[] oid;
+        org.omg.CORBA.Object obj;
+        oid = m_poa.activate_object(pMyServiceImplA);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumerA.setObject(obj);
+
+        oid = m_poa.activate_object(pMyServiceImplB);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumerB.setObject(obj);
 
         CorbaPort port0 = new CorbaPort("name of port0");
         CorbaPort port1 = new CorbaPort("name of port1");
@@ -353,23 +423,10 @@ System.out.println("test_connect()");
         // 接続を解除し、正しく切断できていることを確認する
         port0.disconnect(prof.value.connector_id);
 
-      try
-	{
-	  assertTrue("3:",! pMyServiceImplB.is_hello_world_called());
-	  pMyServiceConsumerB._ptr().hello_world();
-							
-	  fail("Couldn't catch no exceptions. Disconnection failed.");
-	}
-      catch(Exception ex)
-	{
-	  // Properly disconnected.
-	}
-
-
     }
     /**
      */ 
-    public void test_get_port_profile() {
+    public void test_get_port_profile() throws Exception {
         //
         MyService_impl pMyServiceImpl
             = new MyService_impl(); // will be deleted automatically
@@ -377,6 +434,12 @@ System.out.println("test_connect()");
             = new CorbaConsumer<MyService>(MyService.class); 
                                     // will be deleted automatically
 			
+        byte[] oid;
+        org.omg.CORBA.Object obj;
+        oid = m_poa.activate_object(pMyServiceImpl);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumer.setObject(obj);
+
         CorbaPort port = new CorbaPort("name of port");
         try {
             port.registerProvider("MyService (provided)", "Generic (provided)", pMyServiceImpl);
@@ -396,7 +459,7 @@ System.out.println("test_connect()");
         RTC.PortProfile profile = portRef.get_port_profile();
 
         //
-        assertTrue(profile.name.equals("name of port"));
+        assertTrue(profile.name.equals("unknown.name of port"));
 			
         //
         RTC.PortInterfaceProfile[] profiles = profile.interfaces;
@@ -468,8 +531,7 @@ System.out.println("test_connect()");
         port0.deactivateInterfaces_public();
 
     }
-    public void test_activateInterfaces_deactivateInterfaces() {
-System.out.println("test_activateInterfaces_deactivateInterfaces()");
+    public void test_activateInterfaces_deactivateInterfaces() throws Exception {
         // Create port0.
         MyService_impl pMyServiceImplA
             = new MyService_impl(); // will be deleted automatically
@@ -514,7 +576,18 @@ System.out.println("test_activateInterfaces_deactivateInterfaces()");
               fail();
         }
 			
-        //Create profile
+        byte[] oid;
+        org.omg.CORBA.Object obj;
+
+        oid = m_poa.activate_object(pMyServiceImplA);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumerA.setObject(obj);
+
+        oid = m_poa.activate_object(pMyServiceImplB);
+        obj = m_poa.id_to_reference(oid);
+        pMyServiceConsumerB.setObject(obj);
+
+	//Create profile
         ConnectorProfileHolder connProfile = new ConnectorProfileHolder(
                 ConnectorProfileFactory.create());
         connProfile.value.connector_id = "";
@@ -542,7 +615,6 @@ System.out.println("test_activateInterfaces_deactivateInterfaces()");
         //
         try {
             pMyServiceConsumerA._ptr().hello_world();
-	    fail("Couldn't catch no exceptions. Disconnection failed.");
         }
         catch(Exception ex) {
         }
