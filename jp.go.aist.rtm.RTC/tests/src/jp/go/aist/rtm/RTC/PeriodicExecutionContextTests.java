@@ -12,6 +12,7 @@ import jp.go.aist.rtm.RTC.sample.SampleComponentDelete;
 import jp.go.aist.rtm.RTC.sample.SampleComponentNew;
 import jp.go.aist.rtm.RTC.util.Properties;
 import junit.framework.TestCase;
+import jp.go.aist.rtm.RTC.executionContext.ECFactoryBase;
 
 /**
 * PeriodicExecutionContext　テスト(19)
@@ -50,13 +51,16 @@ public class PeriodicExecutionContextTests extends TestCase {
      * </p>
      */
       public void test_component() {
-/*
-          Manager manager = Manager.instance();
+          String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+          };
+          Manager manager = Manager.init(args);
+          manager.m_factory = new ObjectManager<String, FactoryBase>(); 
           assertNotNull(manager.getORB());
           assertNotNull(manager.getPOA());
           assertNotNull(manager.getPOAManager());
-          assertNotNull(manager.m_objManager);
-          assertEquals(2, manager.m_ecfactory.m_objects.size());
+          assertEquals(0, manager.m_ecfactory.m_objects.size());
           boolean result = manager.activateManager();
           assertEquals(true, result);
     
@@ -80,7 +84,7 @@ public class PeriodicExecutionContextTests extends TestCase {
           RTObject_impl rtobj = manager.createComponent("sample");
 //          assertEquals(1, manager.getComponents().size());
 
-          ExecutionContext[] exs = rtobj.get_contexts();
+          ExecutionContext[] exs = rtobj.get_owned_contexts();
           assertEquals(1, exs.length);
           //
           assertEquals(1000.0,exs[0].get_rate());
@@ -122,13 +126,12 @@ public class PeriodicExecutionContextTests extends TestCase {
           retcode = exs[0].stop();
           assertEquals(ReturnCode_t.RTC_OK, retcode);
           //
-          retcode = exs[0].remove(rtobj.m_objref);
-          assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, retcode);
+          retcode = exs[0].remove_component(rtobj.m_objref);
+          assertEquals(ReturnCode_t.BAD_PARAMETER.value(), retcode.value());
           //
           retcode = exs[0].stop();
           assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, retcode);
-    
-*/
+
       }
 
       /**
@@ -140,8 +143,12 @@ public class PeriodicExecutionContextTests extends TestCase {
        *</pre>
        */
       public void test_reset() {
-/*
-          Manager manager = Manager.instance();
+          String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+          };
+          Manager manager = Manager.init(args);
+          manager.m_factory = new ObjectManager<String, FactoryBase>(); 
           boolean result = manager.activateManager();
           assertEquals(true, result);
     
@@ -164,7 +171,7 @@ public class PeriodicExecutionContextTests extends TestCase {
           manager.registerFactory(prop, new ResetSampleComponentNew(), new ResetSampleComponentDelete());
           RTObject_impl rtobj = manager.createComponent("reset_sample");
 
-          ExecutionContext[] exs = rtobj.get_contexts();
+          ExecutionContext[] exs = rtobj.get_owned_contexts();
           assertEquals(1, exs.length);
           exs[0].set_rate(1000.0);
           //
@@ -188,6 +195,5 @@ public class PeriodicExecutionContextTests extends TestCase {
           retcode = exs[0].reset_component(rtobj.m_objref);
           assertEquals(ReturnCode_t.RTC_OK, retcode);
           //
-*/
       }
 }
