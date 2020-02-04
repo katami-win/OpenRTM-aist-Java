@@ -28,13 +28,16 @@ public class PeriodicExecutionContextThreadTests extends TestCase {
        *</pre>
        */
         public void test_start_stop() {
-/*
+            String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+            };
             Manager manager = Manager.instance();
+            manager.m_factory = new ObjectManager<String, FactoryBase>(); 
             assertNotNull(manager.getORB());
             assertNotNull(manager.getPOA());
             assertNotNull(manager.getPOAManager());
-            assertNotNull(manager.m_objManager);
-            assertEquals(2, manager.m_ecfactory.m_objects.size());
+            assertEquals(0, manager.m_ecfactory.m_objects.size());
             boolean result = manager.activateManager();
             assertEquals(true, result);
       
@@ -56,7 +59,7 @@ public class PeriodicExecutionContextThreadTests extends TestCase {
             manager.registerFactory(prop, new SampleComponentNew(), new SampleComponentDelete());
             RTObject_impl rtobj = manager.createComponent("sample");
 
-            ExecutionContext[] exs = rtobj.get_contexts();
+            ExecutionContext[] exs = rtobj.get_owned_contexts();
             assertEquals(1, exs.length);
             //
             //
@@ -77,8 +80,7 @@ public class PeriodicExecutionContextThreadTests extends TestCase {
                     intCnt++;
                 }
             }
-            assertTrue(intCnt<=1);
-*/
+            assertTrue(intCnt>=1);
         }
 
 }
