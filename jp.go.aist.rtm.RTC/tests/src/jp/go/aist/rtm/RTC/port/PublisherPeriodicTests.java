@@ -158,7 +158,7 @@ public class PublisherPeriodicTests extends TestCase {
                  break;
              }
              try{
-                 Thread.sleep(1);
+                 Thread.sleep(10);
              }
              catch(java.lang.InterruptedException e) {
              }
@@ -470,7 +470,7 @@ public class PublisherPeriodicTests extends TestCase {
 
         }
 
-        localSleep(20);
+        localSleep(200);
         //The buffer of provider is made full and write() is called. 
         {
 	OutputStream cdr
@@ -482,7 +482,7 @@ public class PublisherPeriodicTests extends TestCase {
         tmlongholder._write(cdr);
         assertEquals("2:",ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
-        localSleep(20);
+        localSleep(200);
         }
         {
         OutputStream cdr
@@ -545,7 +545,7 @@ public class PublisherPeriodicTests extends TestCase {
         assertEquals("8:",ReturnCode.PORT_OK,
                                  publisher.write(cdr,-1,0));
         try{
-            Thread.sleep(20);
+            Thread.sleep(40);
         }
         catch(java.lang.InterruptedException e) {
         }
@@ -1251,7 +1251,7 @@ public class PublisherPeriodicTests extends TestCase {
         }
 
   
-        this.sleep(10);
+        this.sleep(40);
         //Data is gotten from the buffer of provider.
         //
         //Is the latest data transmitted?
