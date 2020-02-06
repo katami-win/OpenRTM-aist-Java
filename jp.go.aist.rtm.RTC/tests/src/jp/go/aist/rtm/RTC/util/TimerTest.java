@@ -37,6 +37,14 @@ public class TimerTest extends TestCase {
         public boolean _printMsg;
         public int _count;
     };
+    protected void setUp() throws Exception {
+        super.setUp();
+    }
+
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
+
 
     /**
      * <p>registerListener()メソッドのテスト
