@@ -303,7 +303,7 @@ public class PublisherNew extends PublisherBase implements Runnable, ObjectCreat
     }
     
     // A condition variable for data update notification
-    private NewData m_data;
+    private NewData m_data = new NewData();
     
     /**
      * <p> init </p>
@@ -332,7 +332,6 @@ public class PublisherNew extends PublisherBase implements Runnable, ObjectCreat
         // push_policy default: PUBLISHER_POLICY_NEW
         String push_policy = prop.getProperty("publisher.push_policy", "new");
         rtcout.println(Logbuf.DEBUG, "push_policy: " + push_policy );
-    
         push_policy = StringUtil.normalize(push_policy);
         if (push_policy.equals("all")) {
             m_pushPolicy = Policy.PUBLISHER_POLICY_ALL;
@@ -571,9 +570,15 @@ public class PublisherNew extends PublisherBase implements Runnable, ObjectCreat
      */
     public ReturnCode write(OutputStream data, int sec, int usec) {
         rtcout.println(Logbuf.PARANOID, "write()" );
-        if (m_consumer == null) { return ReturnCode.PRECONDITION_NOT_MET; }
-        if (m_buffer == null) { return ReturnCode.PRECONDITION_NOT_MET; }
-        if (m_listeners == null) { return ReturnCode.PRECONDITION_NOT_MET; }
+        if (m_consumer == null) { 
+            return ReturnCode.PRECONDITION_NOT_MET; 
+        }
+        if (m_buffer == null) { 
+            return ReturnCode.PRECONDITION_NOT_MET; 
+        }
+        if (m_listeners == null) { 
+            return ReturnCode.PRECONDITION_NOT_MET; 
+        }
         if (m_retcode.equals(ReturnCode.CONNECTION_LOST)) {
             rtcout.println(Logbuf.DEBUG, "write(): connection lost." );
             return m_retcode;
