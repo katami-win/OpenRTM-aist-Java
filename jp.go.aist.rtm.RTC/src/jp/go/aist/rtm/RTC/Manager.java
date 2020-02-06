@@ -203,7 +203,6 @@ public class Manager {
                 }
             }
         }
-
         return manager;
     }
     
@@ -306,13 +305,15 @@ public class Manager {
         
         // 終了待ち合わせ
         if (m_runner != null) {
-            try {
-                m_runner.wait();
+            synchronized (m_runner) {
+                try {
+                    m_runner.wait();
                 
-            } catch (InterruptedException e) {
-                rtcout.println(Logbuf.DEBUG, "Exception: Caught InterruptedException in Manager.shutdown().");
-                rtcout.println(Logbuf.DEBUG, e.getMessage());
-                e.printStackTrace();
+                } catch (InterruptedException e) {
+                    rtcout.println(Logbuf.DEBUG, "Exception: Caught InterruptedException in Manager.shutdown().");
+                    rtcout.println(Logbuf.DEBUG, e.getMessage());
+                    e.printStackTrace();
+                }
             }
         } else {
             join();
@@ -2719,7 +2720,6 @@ public class Manager {
         config.configure(m_config);
         m_config.setProperty("logger.file_name",
               formatString(m_config.getProperty("logger.file_name"), m_config));
-
         m_module = new ModuleManager(m_config);
         m_terminator = new Terminator(this);
 
@@ -3449,7 +3449,9 @@ public class Manager {
     protected void shutdownNaming() {
         
         rtcout.println(Logbuf.TRACE, "Manager.shutdownNaming()");
-        m_namingManager.unbindAll();
+        if(m_namingManager!=null) {
+            m_namingManager.unbindAll();
+        }
     }
     
     /**
@@ -3466,18 +3468,20 @@ public class Manager {
     protected void shutdownComponents() {
         
         rtcout.println(Logbuf.TRACE, "Manager.shutdownComponents()");
+        if(m_namingManager!=null){
         
-        Vector<RTObject_impl> comps = m_namingManager.getObjects();
-        for (int i=0, len=comps.size(); i < len; ++i) {
-            try {
-                comps.elementAt(i).exit();
-                Properties p = new Properties(comps.elementAt(i).getInstanceName());
-                p.merge(comps.elementAt(i).getProperties());
+            Vector<RTObject_impl> comps = m_namingManager.getObjects();
+            for (int i=0, len=comps.size(); i < len; ++i) {
+                try {
+                    comps.elementAt(i).exit();
+                    Properties p = new Properties(comps.elementAt(i).getInstanceName());
+                    p.merge(comps.elementAt(i).getProperties());
                 
-                rtcout.level(Logbuf.PARANOID);
+                    rtcout.level(Logbuf.PARANOID);
 
-            } catch (Exception e) {
+                } catch (Exception e) {
 //                e.printStackTrace();
+                }
             }
         }
         
@@ -4424,7 +4428,9 @@ public class Manager {
        *   {@.en Starting result}
        */
         public int svc() {
-            m_pORB.run();
+            if(m_pORB!=null) {
+                m_pORB.run();
+            }
 //            Manager.instance().shutdown();
             return 0;
         }
