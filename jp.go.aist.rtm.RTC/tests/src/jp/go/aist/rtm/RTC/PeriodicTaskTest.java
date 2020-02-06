@@ -172,7 +172,6 @@ public class PeriodicTaskTest extends TestCase {
         }
         catch(java.lang.InterruptedException e) {
         }
-//        System.out.println(logger.countLog("mysvc2"));
         assertTrue(12>logger.countLog("mysvc2"));
         assertTrue(8<logger.countLog("mysvc2"));
 
@@ -203,7 +202,6 @@ public class PeriodicTaskTest extends TestCase {
      * 
      */
     public void test_executionMeasure() {
-/*
 System.out.println("test_executionMeasure---000---");
         final double wait = 0.03; // [s]
         MySvc mysvc = new MySvc();
@@ -317,7 +315,6 @@ System.out.println("test_executionMeasure---090---");
         assertTrue(estat.min_interval == estat2.min_interval);
         assertTrue(estat.mean_interval == estat2.mean_interval);
         assertTrue(estat.std_deviation == estat2.std_deviation);
-*/
     }
     /**
      * <p> executionMeasure </p>
@@ -388,10 +385,10 @@ System.out.println("test_executionMeasure---090---");
 
 
         //The execution frequency doesn't reach executionMeasureConut.
-        p.periodicMeasureCount(10);
+        p.periodicMeasureCount(100);
         p._resume();
         try {
-            Thread.sleep(300);
+            Thread.sleep(100);
         }
         catch(java.lang.InterruptedException e) {
         }
@@ -405,7 +402,8 @@ System.out.println("test_executionMeasure---090---");
         TimeMeasure.Statistics pstat2 = p.getPeriodStat();
         //Because the frequency is less than periodicMeasureConut, 
         // the last value is returned. 
-        assertTrue(pstat.max_interval == pstat2.max_interval);
+        assertEquals(pstat.max_interval,pstat2.max_interval);
+        //assertTrue(pstat.max_interval == pstat2.max_interval);
         assertTrue(pstat.min_interval == pstat2.min_interval);
         assertTrue(pstat.mean_interval == pstat2.mean_interval);
         assertTrue(pstat.std_deviation == pstat2.std_deviation);
