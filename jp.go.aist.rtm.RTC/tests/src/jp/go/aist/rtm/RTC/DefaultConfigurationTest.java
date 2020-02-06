@@ -70,11 +70,11 @@ public class DefaultConfigurationTest extends TestCase {
         Properties prop = new Properties();
         prop.setDefaults(DefaultConfiguration.default_config);
 
-        int len = this.private_config.length;
+        int len = DefaultConfiguration.default_config.length;
       //System.err.println("------------------------------------------------------------");
         for( int i = 0 ; i+1 < len ; i += 2 ) {
-            String key = this.private_config[i];
-            String value = this.private_config[i+1];
+            String key = DefaultConfiguration.default_config[i];
+            String value = DefaultConfiguration.default_config[i+1];
 
             key = key.trim();
             value = value.trim();
@@ -82,7 +82,7 @@ public class DefaultConfigurationTest extends TestCase {
           //System.err.println("private_config.key=("+key.toString()+")" );
           //System.err.println("default_config.value=("+prop.getProperty(key).toString()+")" );
           //System.err.println("------------------------------------------------------------");
-            //assertEquals(value, prop.getProperty(key));
+            assertEquals(value, prop.getProperty(key));
         }
     }
 
