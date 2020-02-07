@@ -1,11 +1,14 @@
 package jp.go.aist.rtm.RTC.port;
 
+import jp.go.aist.rtm.RTC.BufferFactory;
 import jp.go.aist.rtm.RTC.buffer.RingBuffer;
+import jp.go.aist.rtm.RTC.buffer.CdrRingBuffer;
 import jp.go.aist.rtm.RTC.util.NVListHolderFactory;
 import jp.go.aist.rtm.RTC.util.NVUtil;
 import jp.go.aist.rtm.RTC.util.FloatHolder;
 import jp.go.aist.rtm.RTC.util.DataRef;
 import jp.go.aist.rtm.RTC.util.ORBUtil;
+import jp.go.aist.rtm.RTC.util.Properties;
 import junit.framework.TestCase;
 
 import org.omg.CORBA.Any;
@@ -44,23 +47,17 @@ public class OutPortCorbaProviderTest extends TestCase {
      */
     public void test_publishInterfaceProfile() throws Exception {
         RingBuffer<TimedFloat> buffer = new RingBuffer<TimedFloat>(100);
-        //OutPortCorbaProvider<TimedFloat> provider = new OutPortCorbaProvider<TimedFloat>(TimedFloat.class, buffer); // will be deleted automatically
         OutPortCorbaCdrProvider provider = new OutPortCorbaCdrProvider(); // will be deleted automatically
         
         NVListHolder profile = NVListHolderFactory.create();
+
         provider.publishInterfaceProfile(profile);
         
-        // "dataport.data_type"プロパティを正しく取得できるか？
-        assertEquals("TimedFloat", NVUtil.toString(profile, "dataport.data_type"));
         
         // "dataport.interface_type"プロパティを正しく取得できるか？
-        assertEquals("CORBA_Any", NVUtil.toString(profile, "dataport.interface_type"));
+        assertEquals("corba_cdr", NVUtil.toString(profile, "dataport.interface_type"));
         
-        // "dataport.dataflow_type"プロパティを正しく取得できるか？
-        assertEquals("Push, Pull", NVUtil.toString(profile, "dataport.dataflow_type"));
         
-        // "dataport.subscription_type"プロパティを正しく取得できるか？
-        assertEquals("Flush, New, Periodic", NVUtil.toString(profile, "dataport.subscription_type"));
     }
     /**
      * <p>get()メソッドのテスト
@@ -69,40 +66,53 @@ public class OutPortCorbaProviderTest extends TestCase {
      * </ul>
      * </p>
      */
-/*
     public void test_get() throws Exception {
-        RingBuffer<Float> buffer = new RingBuffer<Float>(100);
-        //OutPortCorbaProvider<Float> provider = new OutPortCorbaProvider<Float>(Float.class, buffer); // will be deleted automatically
         OutPortCorbaCdrProvider provider = new OutPortCorbaCdrProvider(); // will be deleted automatically
-        
+
+        RingBuffer<OutputStream> buffer;
+        final BufferFactory<RingBuffer<OutputStream>,String> factory
+            = BufferFactory.instance();
+        factory.addFactory("ring_buffer",
+                    new CdrRingBuffer(),
+                    new CdrRingBuffer());
+        buffer = factory.createObject("ring_buffer");
+        Properties prop = new Properties();
+        prop.setProperty("read.empty_policy","do_nothing");
+        buffer.init(prop);
+        provider.setBuffer(buffer);
+
         for( int i = 0; i < 10; ++i ) {
-            Float writeValue = new Float(3.14159 * i);
-            buffer.write(writeValue);
+            java.util.Properties props = new java.util.Properties();
+            props.put("org.omg.CORBA.ORBInitialPort", "2809");
+            props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+            ORB orb = ORB.init(new String[0], props);
+            OutputStream cdr
+                = new EncapsOutputStreamExt(orb,true);
+            RTC.TimedFloat tmfloat = new RTC.TimedFloat(new RTC.Time(0,0),3.14159f * i);
+            RTC.TimedFloatHolder tmfloatholder
+                = new RTC.TimedFloatHolder(tmfloat);
+            tmfloatholder._write(cdr);
+            buffer.write(cdr);
 
             // バッファに書き込まれた値を、get()メソッドで正しく読み出せるか？
 
-            //float readValue;
-            OpenRTM.CdrDataHolder cdr_data = new OpenRTM.CdrDataHolder();
-            ORB m_orb = ORBUtil.getOrb();
-            org.omg.CORBA.Any any = m_orb.create_any(); 
-            OutputStream data = any.create_output_stream();
+            byte[] byte_data = new byte[256];
+            OpenRTM.CdrDataHolder cdr_data = new OpenRTM.CdrDataHolder(byte_data);
             provider.get(cdr_data);
+            OutputStream data
+                = new EncapsOutputStreamExt(orb,true);
             data.write_octet_array(cdr_data.value, 0, 
                                         cdr_data.value.length);
             EncapsOutputStream outcdr;
             outcdr = (EncapsOutputStream)data;
-            DataRef<InputStream> dataref 
-                    = new DataRef<InputStream>(outcdr.create_input_stream());
-            FloatHolder holder = new FloatHolder();
-            holder._read(dataref.v);
-            Float readValue = holder.value;
+            InputStream dataref
+                    = outcdr.create_input_stream();
+            RTC.TimedFloat fl = new RTC.TimedFloat(new RTC.Time(0,0),0);
+            RTC.TimedFloatHolder holder = new RTC.TimedFloatHolder(fl);
+            holder._read(dataref);
 
-            //float readValue;
-            //Any any = provider.get();
-            //readValue = any.extract_float();
-            assertEquals(writeValue.floatValue(), readValue);
+            assertEquals(tmfloat.data, holder.value.data);
         }
     }
-*/
     
 }

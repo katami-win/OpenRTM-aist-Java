@@ -31,6 +31,7 @@ public abstract class OutPortConnector extends ConnectorBase {
         m_isLittleEndian = true;
         m_directInPort = null;
         m_listeners = listeners;
+        m_directMode = false;
     }
 
     /**
@@ -68,6 +69,30 @@ public abstract class OutPortConnector extends ConnectorBase {
     public final String name(){
         rtcout.println(Logbuf.TRACE, "name() = " + profile().name);
         return profile().name;
+    }
+    /**
+     * {@.ja ダイレクト接続モードに設定}
+     * {@.en Setting a direct mode}
+     * <p>
+     * {@.ja ダイレクト接続モードに設定する}
+     * {@.en This operation set this connector's direct mode}
+     */
+    public void setDirectMode(){
+        m_directMode = true;
+    }
+    /**
+     * {@.ja ダイレクト接続モードを返す}
+     * {@.en Returns direct connection mode}
+     * <p>
+     * {@.ja ダイレクト接続モード設定のbool値を返す。}
+     * {@.en This value is true if the architecture is direct connection.}
+     *
+     * @return 
+     *   {@.ja m_directMode がdirectの場合trueを返す。}
+     *   {@.en Returns the direct mode setting.}
+     */
+    public boolean directMode(){
+        return m_directMode;
     }
     /**
      * {@.ja endianタイプ設定}
@@ -169,6 +194,7 @@ public abstract class OutPortConnector extends ConnectorBase {
     protected Logbuf rtcout;
     protected ConnectorInfo m_profile;
     protected boolean m_isLittleEndian;
+    protected boolean m_directMode;
     /**
      * {@.ja 同一プロセス上のピアInPortのポインタ}
      * {@.en InProt pointer to the peer in the same process}

@@ -20,6 +20,7 @@ import jp.go.aist.rtm.RTC.util.Properties;
 
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
+import org.omg.CORBA.TCKind;
 
 import _SDOPackage.NVListHolder;
 import _SDOPackage.NameValue;
@@ -44,7 +45,6 @@ public class ManagerServantTest extends TestCase {
         "exported_ports",    "",
         "conf.default.members", "",
         "conf.default.exported_ports", "",
-        "",""
     };
 
     public static final String[] str_consolein_spec = {
@@ -88,6 +88,7 @@ public class ManagerServantTest extends TestCase {
         "os.version",               "2.6.24-23-generic",
         "os.arch",                  "i386",
         "os.hostname",              "ubuntu804-kz",
+        "logger.enable",            "NO",
         "",""
     };
 
@@ -112,7 +113,7 @@ public class ManagerServantTest extends TestCase {
         "os.version",             "",
         "os.arch",                "",
         "os.hostname",            "",
-        "logger.enable",          "YES",
+        "logger.enable",          "NO",
         "logger.file_name",       "./rtc%p.log",
         "logger.date_format",     "%b %d %H:%M:%S",
         "logger.log_level",       "INFO",
@@ -134,6 +135,7 @@ public class ManagerServantTest extends TestCase {
         "exec_cxt.periodic.type", "jp.go.aist.rtm.RTC.executionContext.PeriodicExecutionContext",
         "exec_cxt.periodic.rate", "1000",
         "exec_cxt.evdriven.type", "jp.go.aist.rtm.RTC.executionContext.EventDrivenExecutionContext",
+        "manager.shutdown_on_nortcs", "NO",
         "",""
     };
 
@@ -147,12 +149,15 @@ public class ManagerServantTest extends TestCase {
         "manager.os.version",     "2.6.24-23-generic",
         "manager.os.arch",        "i386",
         "manager.os.hostname",    "ubuntu804-kz",
+        "logger.enable",          "NO",
+        "manager.shutdown_on_nortcs", "NO",
         "",""
     };
 
     private RTM.Manager m_objref;
     private ORB m_pORB;
     private POA m_pPOA;
+    private Manager manager;
 
     // 構造体定義
     public class data_struct {
@@ -165,10 +170,20 @@ public class ManagerServantTest extends TestCase {
     }
 
     private boolean isFound(final RTM.ModuleProfile[] list, final String mod) {
+        String pch = new String();
         for(int ic=0; ic < list.length; ++ic) {
-            String pch = list[ic].properties[0].name;
-            if(mod.equals(pch)) {
-                return true;
+            for(int icc=0;icc<list[ic].properties.length;++icc){
+                if(list[ic].properties[0].name.equals("file_path")){
+                    if(list[ic].properties[icc].value.type().kind() == TCKind.tk_wstring ) {
+                        pch = list[ic].properties[icc].value.extract_wstring();
+                    }
+                    else{
+                        pch = list[ic].properties[icc].value.extract_string();
+                    }
+                    if(mod.equals(pch)) {
+                        return true;
+                    }
+                }
             }
         }
         return false;
@@ -181,10 +196,25 @@ public class ManagerServantTest extends TestCase {
         this.m_pPOA = org.omg.PortableServer.POAHelper.narrow(
                 this.m_pORB.resolve_initial_references("RootPOA"));
         this.m_pPOA.the_POAManager().activate();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        manager = Manager.init(args);
+        manager.activateManager();
+        manager.runManager(true);
     }
 
     protected void tearDown() throws Exception {
         super.tearDown();
+        Properties properties = manager.getConfig();
+        String rtcname = properties.getProperty("logger.file_name");
+
+        manager.shutdownComponents();
+        manager.shutdownNaming();
+        manager.shutdownManager();
+
+	manager = null;
     }
 
     /**
@@ -304,15 +334,24 @@ public class ManagerServantTest extends TestCase {
 
         //Check returns(ModuleProfileList).
         assertEquals(2, modlist.length);
-        assertEquals("RTMExamples.SimpleIO.ConsoleIn", modlist[0].properties[0].name);
-
         String ch = new String();
-        ch = modlist[0].properties[0].value.extract_wstring();
-        assertEquals("", ch);
-        assertEquals("RTMExamples.SimpleIO.ConsoleOut", modlist[1].properties[0].name);
+        if(modlist[0].properties[0].value.type().kind() == TCKind.tk_wstring ) {
+            ch = modlist[0].properties[0].value.extract_wstring();
+        }
+        else{
+            ch = modlist[0].properties[0].value.extract_string();
+        }
+        assertEquals("RTMExamples.SimpleIO.ConsoleIn", ch);
 
-        ch = modlist[1].properties[0].value.extract_wstring();
-        assertEquals("", ch);
+        assertEquals("file_path", modlist[1].properties[0].name);
+
+        if( modlist[1].properties[0].value.type().kind() == TCKind.tk_wstring ) {
+            ch = modlist[1].properties[0].value.extract_wstring();
+        }
+        else{
+            ch = modlist[1].properties[0].value.extract_string();
+        }
+        assertEquals("RTMExamples.SimpleIO.ConsoleOut", ch);
 
     }
 
@@ -323,23 +362,26 @@ public class ManagerServantTest extends TestCase {
      * </p>
      */
     public void test_get_factory_profiles() {
-        int num = 13;
+        int num = str_composite_spec.length/2 ;
         // Properties設定
         data_struct[] composite_spec = new data_struct[num];
         for(int i=0, j=0; i<num; ++i, j+=2) {
             composite_spec[i] = new data_struct(str_composite_spec[j], str_composite_spec[j+1]);
         }
-
-        data_struct[] consolein_spec = new data_struct[10];
-        for(int i=0, j=0; i<10; ++i, j+=2) {
+        int in_length = str_consolein_spec.length/2;
+        data_struct[] consolein_spec = new data_struct[in_length];
+        for(int i=0, j=0; i<in_length; ++i, j+=2) {
             consolein_spec[i] = new data_struct(str_consolein_spec[j], str_consolein_spec[j+1]);
         }
 
-        data_struct[] consoleout_spec = new data_struct[10];
-        for(int i=0, j=0; i<10; ++i, j+=2) {
+        int out_length = str_consoleout_spec.length/2;
+        data_struct[] consoleout_spec = new data_struct[out_length];
+        for(int i=0, j=0; i<out_length; ++i, j+=2) {
             consoleout_spec[i] = new data_struct(str_consoleout_spec[j], str_consoleout_spec[j+1]);
         }
 
+
+        manager.clearModulesFactories();
         ManagerServant pman = new ManagerServant();
         ReturnCode_t ret = ReturnCode_t.RTC_ERROR;
 
@@ -366,32 +408,33 @@ public class ManagerServantTest extends TestCase {
 
         //Check returns(ModuleProfileList).
         int len, pos;
-        assertEquals(3, profiles.length);
+        assertEquals(2, profiles.length);
+        String ch = new String();
         pos = 0;
         len = profiles[pos].properties.length;
-        assertEquals(num, len);
-        String ch = new String();
+        assertEquals(10, len);
         for(int ic=0; ic < len; ++ic) {
-            assertEquals(composite_spec[ic].name, profiles[pos].properties[ic].name);
-            ch = profiles[pos].properties[ic].value.extract_wstring();
-            assertEquals(composite_spec[ic].value, ch);
+            assertEquals(consolein_spec[ic].name, profiles[pos].properties[ic].name);
+            if( profiles[pos].properties[ic].value.type().kind() == TCKind.tk_wstring ) {
+                ch = profiles[pos].properties[ic].value.extract_wstring();
+            }
+            else{
+                ch = profiles[pos].properties[ic].value.extract_string();
+            }
+            assertEquals(consolein_spec[ic].value, ch);
         }
 
         pos = 1;
         len = profiles[pos].properties.length;
         assertEquals(10, len);
         for(int ic=0; ic < len; ++ic) {
-            assertEquals(consolein_spec[ic].name, profiles[pos].properties[ic].name);
-            ch = profiles[pos].properties[ic].value.extract_wstring();
-            assertEquals(consolein_spec[ic].value, ch);
-        }
-
-        pos = 2;
-        len = profiles[pos].properties.length;
-        assertEquals(10, len);
-        for(int ic=0; ic < len; ++ic) {
             assertEquals(consoleout_spec[ic].name, profiles[pos].properties[ic].name);
-            ch = profiles[pos].properties[ic].value.extract_wstring();
+            if( profiles[pos].properties[ic].value.type().kind() == TCKind.tk_wstring ) {
+                ch = profiles[pos].properties[ic].value.extract_wstring();
+            }
+            else{
+                ch = profiles[pos].properties[ic].value.extract_string();
+            }
             assertEquals(consoleout_spec[ic].value, ch);
         }
 
@@ -426,7 +469,6 @@ public class ManagerServantTest extends TestCase {
         RTC.RTObject outobj;
         outobj = pman.create_component("ConsoleOut");
         assertNotNull(outobj);
-
     }
 
     /**
@@ -628,11 +670,14 @@ public class ManagerServantTest extends TestCase {
 
         int len;
         len = profile.properties.length; 
-        assertEquals(num, len);
         String ch = new String();
-        for(int ic=0; ic < len; ++ic) {
-            assertEquals(manager_profile[ic].name, profile.properties[ic].name);
-            ch = profile.properties[ic].value.extract_wstring();
+        for(int ic=0; ic < manager_profile.length; ++ic) {
+            if( profile.properties[ic].value.type().kind() == TCKind.tk_wstring ) {
+                ch = profile.properties[ic].value.extract_wstring();
+            }
+            else{
+                ch = profile.properties[ic].value.extract_string();
+            }
             if(manager_profile[ic].value != null) {
                 // value が変化するものはチェックしない
                 // rtc.conf に別途定義している場合、項目数や内容が変わる
@@ -674,24 +719,33 @@ public class ManagerServantTest extends TestCase {
 
         int len;
         len = conf.length; 
-        assertEquals(num, len);
         String ch = new String();
-        for(int ic=0; ic < len; ++ic) {
-            assertEquals(config[ic].name, conf[ic].name);
-            ch = conf[ic].value.extract_wstring();
-            if(config[ic].value != null) {
-                // value が変化するものはチェックしない
-                // rtc.conf に別途定義している場合、項目数や内容が変わる
-                if( config[ic].name.equals("manager.pid") ||
-                    config[ic].name.equals("manager.os.name") ||
-                    config[ic].name.equals("manager.os.release") ||
-                    config[ic].name.equals("manager.os.version") ||
-                    config[ic].name.equals("manager.os.arch") ||
-                    config[ic].name.equals("manager.os.hostname") ||
-                    config[ic].name.equals("logger.file_name") ) {
-                    continue;
+        for(int ic=0; ic < conf.length; ++ic) {
+            if( conf[ic].value.type().kind() == TCKind.tk_wstring ) {
+                ch = conf[ic].value.extract_wstring();
+            }
+            else{
+                ch = conf[ic].value.extract_string();
+            }
+            for(int icc=0; icc<config.length; ++icc) {
+                if(config[icc].value != null) {
+                    // value が変化するものはチェックしない
+                    // rtc.conf に別途定義している場合、項目数や内容が変わる
+                    if( config[icc].name.equals("manager.pid") ||
+                        config[icc].name.equals("manager.os.name") ||
+                        config[icc].name.equals("manager.os.release") ||
+                        config[icc].name.equals("manager.os.version") ||
+                        config[icc].name.equals("manager.os.arch") ||
+                        config[icc].name.equals("manager.os.hoestname") ||
+                        config[icc].name.equals("config.version") ||
+                        config[icc].name.equals("openrtm.version") ||
+                        config[icc].name.equals("logger.file_name") ) {
+                        continue;
+                    }
+	}
+                if(config[icc].name.equals(ch)) {
+                    assertEquals(config[icc].value, ch);
                 }
-                assertEquals(config[ic].value, ch);
             }
         }
 
@@ -729,12 +783,16 @@ public class ManagerServantTest extends TestCase {
 
         int leng;
         leng = conf.length; 
-        assertEquals(41, leng);
         String ch = new String();
         for(int ic=0; ic < leng; ++ic) {
             if(config[0].name.equals(conf[ic].name)) {
                 assertEquals(config[ic].name, conf[ic].name);
-                ch = conf[ic].value.extract_wstring();
+                if( conf[ic].value.type().kind() == TCKind.tk_wstring ) {
+                    ch = conf[ic].value.extract_wstring();
+                 }
+                 else{
+                    ch = conf[ic].value.extract_string();
+                 }
                 if(config[ic].value != null) {
                     assertEquals(config[ic].value, ch);
                 }
@@ -743,21 +801,6 @@ public class ManagerServantTest extends TestCase {
 
     }
 
-    /**
-     * <p>get_owner()メソッドのテスト
-     * <ul>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_get_owner() {
-        ManagerServant pman = new ManagerServant();
-        RTM.Manager obj;
-        obj =  pman.get_owner();
-        assertNull(obj);
-
-    }
-*/
     /**
      * <p>shutdown()メソッドのテスト
      * <ul>
@@ -825,50 +868,6 @@ public class ManagerServantTest extends TestCase {
 
     }
 
-    /**
-     * <p>set_owner()メソッドのテスト
-     * <ul>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_set_owner() {
-        ManagerServant pman = new ManagerServant();
-
-        m_objref = pman.getObjRef();
-        assertNull(pman.set_owner(m_objref));
-
-    }
-*/
-    /**
-     * <p>set_child()メソッドのテスト
-     * <ul>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_set_child() {
-        ManagerServant pman = new ManagerServant();
-
-        m_objref = pman.getObjRef();
-        assertNull(pman.set_child(m_objref));
-
-    }
-*/
-    /**
-     * <p>get_child()メソッドのテスト
-     * <ul>
-     * </ul>
-     * </p>
-     */
-/*
-    public void test_get_child() {
-        ManagerServant pman = new ManagerServant();
-
-        assertNull(pman.get_child());
-
-    }
-*/
     /**
      * <p>fork()メソッドのテスト
      * <ul>

@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 
 
 import junit.framework.TestCase;
@@ -11,6 +12,8 @@ import junit.framework.TestCase;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.Any;
+import org.omg.CORBA.TCKind;
 import org.omg.PortableServer.POA;
 
 import _SDOPackage.NVListHolder;
@@ -24,6 +27,7 @@ import jp.go.aist.rtm.RTC.util.DataRef;
 import jp.go.aist.rtm.RTC.util.NVUtil;
 import jp.go.aist.rtm.RTC.util.ORBUtil;
 import jp.go.aist.rtm.RTC.util.NVListHolderFactory;
+import jp.go.aist.rtm.RTC.util.Properties;
 
 public class InPortCorbaCdrProviderTest extends TestCase {
     /**
@@ -36,6 +40,7 @@ public class InPortCorbaCdrProviderTest extends TestCase {
          * 
          */
         InPortCorbaCdrProviderMock() {
+            super();
         }
         /**
          * 
@@ -113,13 +118,33 @@ public class InPortCorbaCdrProviderTest extends TestCase {
 
         //init() function is not implemented. 
         //provideri.init();
+        CdrRingBuffer.CdrRingBufferInit();
+        {
+        RTC.ConnectorProfile prof = new RTC.ConnectorProfile();
+        Properties prop = new Properties();
+        ConnectorBase.ConnectorInfo profile
+            = new ConnectorBase.ConnectorInfo(prof.name,
+                                  prof.connector_id,
+                                  new Vector<String>(),
+                                  prop);
+        ConnectorListeners listeners = new ConnectorListeners();
+        try {
+            InPortConnector in_connector = new InPortPushConnector(profile,
+                                                provider,
+                                                listeners,
+                                                null);
+            provider.setConnector(in_connector);
+        }
+        catch (Exception e) {
+        }
+        }
 
         OpenRTM.PortStatus ret = null;
         byte[] data = new byte[8];
         data[0] = 0;
 
         ret = provider.put(data);      
-        assertEquals("3:",OpenRTM.PortStatus.PORT_ERROR,ret);
+        assertEquals("3:",OpenRTM.PortStatus.PORT_OK,ret);
 
         RingBuffer<OutputStream> buffer;
         final BufferFactory<RingBuffer<OutputStream>,String> factory 
@@ -128,6 +153,11 @@ public class InPortCorbaCdrProviderTest extends TestCase {
                     new CdrRingBuffer(),
                     new CdrRingBuffer());
         buffer = factory.createObject("ring_buffer");
+        {
+        Properties prop = new Properties();
+        prop.setProperty("write.full_policy","do_nothing");
+        buffer.init(prop);
+        }
         provider.setBuffer(buffer);
 
         ret = provider.put(data);      
@@ -282,8 +312,14 @@ public class InPortCorbaCdrProviderTest extends TestCase {
         NVListHolder prop = NVListHolderFactory.create();
         provider.publishInterfaceProfile(prop);
 
-        assertEquals("corba_cdr",
-                NVUtil.find(prop, "dataport.interface_type").extract_wstring());
+        Any value = NVUtil.find(prop, "dataport.interface_type");
+	String str;
+        if( value.type().kind() == TCKind.tk_wstring ) {
+            str = value.extract_wstring();
+        } else {
+            str = value.extract_string();
+        }
+        assertEquals("corba_cdr",str);
     }
 
     

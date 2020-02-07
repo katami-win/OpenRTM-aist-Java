@@ -287,7 +287,8 @@ public class ExtendedFsmServiceProviderTest extends TestCase {
 
         //ExtendedFsmServiceProvider.ExtendedFsmServiceProviderInit();
 
-        Manager mgr = Manager.init(null);
+        String[] argv = {"-o","logger.enable:NO"};  
+        Manager mgr = Manager.init(argv);
         try {
             POA pPOA = mgr.getPOA();
             pPOA.the_POAManager().activate();
@@ -303,6 +304,9 @@ public class ExtendedFsmServiceProviderTest extends TestCase {
 
         final SdoServiceProviderFactory<ExtendedFsmServiceProvider,String> 
             factory = SdoServiceProviderFactory.instance();
+        factory.addFactory(ExtendedFsmServiceHelper.id(),
+                    new ExtendedFsmServiceProvider(),
+                    new ExtendedFsmServiceProvider());
 
         ExtendedFsmServiceProvider provider;
         provider = factory.createObject(ExtendedFsmServiceHelper.id());

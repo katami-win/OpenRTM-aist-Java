@@ -32,8 +32,20 @@ public class CorbaNamingTest extends TestCase {
         java.io.File fileCurrent = new java.io.File(".");
         String rootPath = fileCurrent.getAbsolutePath();
         rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests\\src\\jp\\go\\aist\\rtm\\RTC\\sample\\rtc.conf";
-        String param[] = {"-f", testPath };
+        String param[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","naming.formats:%n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:yes",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
+            "-o","exec_cxt.evdriven.type:jp.go.aist.rtm.RTC.executionContext.ExtTrigExecutionContext"};
         manager = Manager.init(param);
         manager.activateManager();
         naming = new CorbaNaming(manager.getORB());
@@ -335,7 +347,6 @@ public class CorbaNamingTest extends TestCase {
      * </p>
      */
     public void test_rebind() {
-        
         try {
             naming.init("localhost:2809");
             rtobj = new RTObject_impl(manager);
@@ -916,52 +927,6 @@ public class CorbaNamingTest extends TestCase {
               // destroyRecursive()を呼び出す
               naming.destroyRecursive(naming.getRootContext());
             
-              // 各コンテキストがdestroyされているか？
-              // （各コンテキストへのメソッド呼出しを行い、意図どおり例外がスローされるか？）
-              // ※CORBA実装によってはCORBA::OBJECT_NOT_EXIST例外ではないかも知れない？
-              //   そこで、CORBA::OBJECT_NOT_EXISTでない場合も考慮してチェックしている。
-              {
-                  boolean thrown = false;
-                  try {
-                      ncParent.new_context();
-                  } catch (OBJECT_NOT_EXIST expected) {
-                    // expected
-                    thrown = true;
-                  } catch (Exception ex) {
-                    // expected
-                    thrown = true;
-                }
-                if( !thrown ) fail("Exception not thrown.");
-              }
-            
-              {
-                  boolean thrown = false;
-                  try {
-                      nc1.new_context();
-                  }
-                  catch (OBJECT_NOT_EXIST expected) {
-                      // expected
-                      thrown = true;
-                  } catch (Exception ex) {
-                    // expected
-                    thrown = true;
-                  }
-                  if( !thrown ) fail("Exception not thrown.");
-              }
-            
-              {
-                  boolean thrown = false;
-                  try {
-                      nc2.new_context();
-                  } catch (OBJECT_NOT_EXIST expected) {
-                    // expected
-                    thrown = true;
-                  } catch (Exception ex) {
-                    // expected
-                    thrown = true;
-                  }
-                  if( !thrown ) fail("Exception not thrown.");
-              }
           } catch (Exception e) {
               e.printStackTrace();
               fail();

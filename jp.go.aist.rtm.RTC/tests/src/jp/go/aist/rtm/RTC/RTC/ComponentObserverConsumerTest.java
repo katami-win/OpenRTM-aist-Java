@@ -430,7 +430,6 @@ public class ComponentObserverConsumerTest extends TestCase {
      *</pre>
      */
     public void test_test001() {
-/*
         System.out.println("test_test001");
         ComponentObserverProviderMock obs = new ComponentObserverProviderMock();
 
@@ -468,7 +467,19 @@ public class ComponentObserverConsumerTest extends TestCase {
         ServiceProfile sprof = new ServiceProfile(uuid,id,value,SDOServiceHelper.narrow(obs.getRef()));
 
         
-        Manager mgr = Manager.init(null);
+        String param[] = {
+            "-o","corba.nameservers:localhostv",
+            "-o","naming.formats:%n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","timer.enable:yes",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager mgr = Manager.init(param);
         try {
             POA pPOA = mgr.getPOA();
             pPOA.the_POAManager().activate();
@@ -509,7 +520,6 @@ public class ComponentObserverConsumerTest extends TestCase {
              //do nothing
         }
         System.out.println("....");
-*/
     }   
     /**
      *<pre>
@@ -555,8 +565,18 @@ public class ComponentObserverConsumerTest extends TestCase {
         java.io.File fileCurrent = new java.io.File(".");
         String rootPath = fileCurrent.getAbsolutePath();
         rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/src/jp/go/aist/rtm/RTC/sample/rtc.conf";
-        String param[] = {"-f", testPath };
+        String param[] = {
+            "-o","corba.nameservers:localhostv",
+            "-o","naming.formats:%n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","timer.enable:yes",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
         try {
             manager = Manager.init(param);
         } catch (Exception e) {

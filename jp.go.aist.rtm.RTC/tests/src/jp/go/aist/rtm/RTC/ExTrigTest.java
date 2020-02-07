@@ -3,6 +3,10 @@ package jp.go.aist.rtm.RTC;
 
 import jp.go.aist.rtm.RTC.port.CorbaConsumer;
 import jp.go.aist.rtm.RTC.util.Properties;
+import jp.go.aist.rtm.RTC.port.OutPort;
+import jp.go.aist.rtm.RTC.DataFlowComponentBase;
+import jp.go.aist.rtm.RTC.util.DataRef;
+import jp.go.aist.rtm.RTC.executionContext.ExtTrigExecutionContext;
 
 import org.omg.CosNaming.NamingContextPackage.CannotProceed;
 import org.omg.CosNaming.NamingContextPackage.InvalidName;
@@ -15,12 +19,12 @@ import RTC.ExecutionContextServiceListHolder;
 import RTC.ExecutionKind;
 import OpenRTM.ExtTrigExecutionContextService;
 import RTC.LifeCycleState;
-//import RTC.PortListHolder;
+import RTC.PortServiceListHolder;
 import RTC.RTObject;
 import RTC.ReturnCode_t;
-import RTMExamples.ExtTrigger.ConsoleIn;
-import RTMExamples.ExtTrigger.ConsoleInComp;
+import RTC.TimedLong;
 import _SDOPackage.NVListHolder;
+import OpenRTM.DataFlowComponent;
 
 /**
 * ExtTrigger　テスト
@@ -33,27 +37,59 @@ public class ExTrigTest extends SampleTest {
     private ExtTrigExecutionContextService ec1Ref;
     private RTObject coninRef;
 
+    public class TestComp extends DataFlowComponentBase {
+        @Override
+        protected ReturnCode_t onInitialize() {
+            try {
+                addOutPort("out", m_outOut);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return super.onInitialize();
+        }
+        public TestComp(Manager manager) {
+            super(manager);
+            m_out_val = new TimedLong(new RTC.Time(0,0),0);
+            m_out = new DataRef<TimedLong>(m_out_val);
+            m_outOut = new OutPort<TimedLong>("out", m_out);
+        }
+        protected TimedLong m_out_val;
+        protected DataRef<TimedLong> m_out;
+        protected OutPort<TimedLong> m_outOut;
+    }
+    public class TestCompDelete implements RtcDeleteFunc {
+
+        public void deleteRtc(RTObject_impl rtcBase) {
+          rtcBase = null;
+        }
+
+    }
+    public class TestCompNew implements RtcNewFunc {
+
+        public DataFlowComponentBase createRtc(Manager mgr) {
+            return new TestComp(mgr);
+       }
+    }
+
     protected void setUp() throws Exception {
         super.setUp();
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        configPath = rootPath + "src\\RTMExamples\\ExtTrigger\\rtc.conf";
-        //
-        String args[] = {"-f", configPath };
-        try {
-            manager = new Manager();
-            manager.initManager(args);
-            manager.initLogger();
-            manager.initORB();
-            manager.initNaming();
-            manager.initExecContext();
-            manager.initTimer();
-        } catch (Exception e) {
-            manager = null;
-        }
-        ConsoleInComp init = new ConsoleInComp();
-        manager.setModuleInitProc(init);
+        String args[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","naming.formats:%n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:yes",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","exec_cxt.periodic.rate:1",
+            "-o","manager.shutdown_on_nortcs:no",
+            "-o","exec_cxt.periodic.type:jp.go.aist.rtm.RTC.executionContext.ExtTrigExecutionContext",
+        };
+        manager = Manager.init(args);
         manager.activateManager();
         String component_conf[] = {
                 "implementation_id", "ConsoleIn",
@@ -68,40 +104,44 @@ public class ExTrigTest extends SampleTest {
                 "lang_type",         "compile",
                 ""
                 };
-      Properties prop = new Properties(component_conf);
-      manager.registerFactory(prop, new ConsoleIn(), new ConsoleIn());
-      comp = manager.createComponent("ConsoleIn");
-      //
-      CorbaConsumer<RTObject> conin = new CorbaConsumer<RTObject>(RTObject.class);
-      CorbaConsumer<ExtTrigExecutionContextService> ec1 = new CorbaConsumer<ExtTrigExecutionContextService>(ExtTrigExecutionContextService.class);
-      CorbaNaming naming = null;
-      try {
+        //registers the module
+        Properties prop = new Properties(component_conf);
+        manager.registerFactory(prop, new TestCompNew(), new TestCompDelete());
+        comp = manager.createComponent("ConsoleIn");
+        //
+        CorbaConsumer<DataFlowComponent> conin 
+            = new CorbaConsumer<DataFlowComponent>(DataFlowComponent.class);
+ 
+        CorbaConsumer<ExtTrigExecutionContextService> ec1 = new CorbaConsumer<ExtTrigExecutionContextService>(ExtTrigExecutionContextService.class);
+        CorbaNaming naming = null;
+        try {
           naming = new CorbaNaming(manager.getORB(), "localhost:2809");
-      } catch (Exception e) {
+        } catch (Exception e) {
           e.printStackTrace();
-      }
-      // find ConsoleIn0 component
-      try {
-          conin.setObject(naming.resolve("ConsoleIn0.rtc"));
-      } catch (NotFound e) {
+        }
+        // find ConsoleIn0 component
+        try {
+          ComponentProfile prof = comp.get_component_profile();
+          conin.setObject(naming.resolve(prof.instance_name+".rtc"));
+        } catch (NotFound e) {
           e.printStackTrace();
-      } catch (CannotProceed e) {
+        } catch (CannotProceed e) {
           e.printStackTrace();
-      } catch (InvalidName e) {
+        } catch (InvalidName e) {
           e.printStackTrace();
-      }
+        }
 
-      ExecutionContextServiceListHolder eclisti = new ExecutionContextServiceListHolder();
-      eclisti.value = new ExecutionContextService[0];
-      coninRef = conin._ptr();
-//      eclisti.value =  coninRef.get_execution_context_services();
-      eclisti.value[0].activate_component(coninRef);
-      ec1.setObject(eclisti.value[0]);
-      ec1Ref = ec1._ptr();
+        ExecutionContextListHolder eclisti = new ExecutionContextListHolder();
+        eclisti.value = new ExecutionContextService[0];
+        coninRef = conin._ptr();
+        eclisti.value =  coninRef.get_owned_contexts();
+        eclisti.value[0].activate_component(coninRef);
+        ec1.setObject(eclisti.value[0]);
+        ec1Ref = ec1._ptr();
     }
     protected void tearDown() throws Exception {
         ExecutionContextListHolder execlist = new ExecutionContextListHolder();
-//        execlist.value = comp.get_contexts();
+        execlist.value = coninRef.get_owned_contexts();
         Thread.yield();
         execlist.value[0].stop();
         super.tearDown();
@@ -119,28 +159,25 @@ public class ExTrigTest extends SampleTest {
      *</pre>
      */
     public void test_profile() {
-/*
         ComponentProfile prof = comp.get_component_profile();
-//        assertEquals("ConsoleIn0", comp.get_component_profile().instance_name);
         assertEquals("ConsoleIn", comp.get_component_profile().type_name);
         assertEquals("Console input component", comp.get_component_profile().description);
         assertEquals("1.0", comp.get_component_profile().version);
         assertEquals("Noriaki Ando, AIST", comp.get_component_profile().vendor);
         assertEquals("example", comp.get_component_profile().category);
         //
-        PortListHolder portlist = new PortListHolder(comp.get_ports());
+        PortServiceListHolder portlist = new PortServiceListHolder(comp.get_ports());
         assertEquals( 1, portlist.value.length);
-        assertEquals( "out", portlist.value[0].get_port_profile().name);
+        assertEquals( comp.get_component_profile().instance_name+".out", portlist.value[0].get_port_profile().name);
         //
         Properties prop = new Properties();
         this.copyToProperties(prop, new NVListHolder(portlist.value[0].get_port_profile().properties));
         assertEquals( "DataOutPort", prop.getProperty("port.port_type"));
-        assertEquals( "TimedLong", prop.getProperty("dataport.data_type"));
-        assertEquals( "CORBA_Any", prop.getProperty("dataport.interface_type"));
-        assertEquals( "Push, Pull", prop.getProperty("dataport.dataflow_type"));
-        assertEquals( "Flush, New, Periodic", prop.getProperty("dataport.subscription_type"));
+        assertEquals( "IDL:RTC/TimedLong:1.0", prop.getProperty("dataport.data_type"));
+        assertEquals( "shared_memory,data_service,direct,corba_cdr", prop.getProperty("dataport.interface_type"));
+        assertEquals( "push,pull", prop.getProperty("dataport.dataflow_type"));
+        assertEquals( "new, nonblock, flush, periodic, block", prop.getProperty("dataport.subscription_type"));
         //
-*/
     }
     
     /**
@@ -158,13 +195,12 @@ public class ExTrigTest extends SampleTest {
      *</pre>
      */
     public void test_EC() {
-/*
-        assertEquals(true, comp.is_alive());
         ExecutionContextListHolder execlist = new ExecutionContextListHolder();
-        execlist.value = comp.get_contexts();
+        execlist.value = comp.get_owned_contexts();
+        assertEquals(true, comp.is_alive(execlist.value[0]));
         assertEquals(true, execlist.value[0].is_running());
         assertEquals(ExecutionKind.PERIODIC, execlist.value[0].get_kind());
-        assertEquals(1000.0, execlist.value[0].get_rate());
+        assertEquals(1.0, execlist.value[0].get_rate());
         //
         ReturnCode_t result = execlist.value[0].stop();
         Thread.yield();
@@ -182,7 +218,6 @@ public class ExTrigTest extends SampleTest {
         Thread.yield();
         assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, result);
         //
-*/
     }
 
 
@@ -201,9 +236,8 @@ public class ExTrigTest extends SampleTest {
      *</pre>
      */
     public void test_State() {
-/*
         ExecutionContextListHolder execlist = new ExecutionContextListHolder();
-        execlist.value = coninRef.get_contexts();
+        execlist.value = coninRef.get_owned_contexts();
         assertEquals(LifeCycleState.INACTIVE_STATE, execlist.value[0].get_component_state(coninRef));
         ReturnCode_t result = execlist.value[0].deactivate_component(coninRef);
         assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, result);
@@ -216,7 +250,7 @@ public class ExTrigTest extends SampleTest {
         assertEquals(LifeCycleState.INACTIVE_STATE, execlist.value[0].get_component_state(coninRef));
         ec1Ref.tick();
         Thread.yield();
-        assertEquals(LifeCycleState.ACTIVE_STATE, execlist.value[0].get_component_state(coninRef));
+        assertEquals(LifeCycleState.ACTIVE_STATE.value(), execlist.value[0].get_component_state(coninRef).value());
         for(int intIdx=0;intIdx<40;intIdx++) {
             ec1Ref.tick();
             Thread.yield();
@@ -237,11 +271,10 @@ public class ExTrigTest extends SampleTest {
         Thread.yield();
         result = comp._finalize();
         Thread.yield();
-        assertEquals(true, comp.is_alive());
+        assertEquals(true, comp.is_alive(execlist.value[0]));
         result = comp.exit();
         Thread.yield();
-        assertEquals(false, comp.is_alive());
-*/
+        assertEquals(true, comp.is_alive(execlist.value[0]));
     }
 
 }

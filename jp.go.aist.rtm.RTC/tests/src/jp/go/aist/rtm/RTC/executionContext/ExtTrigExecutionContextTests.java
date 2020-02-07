@@ -50,7 +50,11 @@ public class ExtTrigExecutionContextTests extends TestCase {
      */
     public void test_tick() {
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock rto = new DataFlowComponentMock(manager); // will be deleted automatically
         LightweightRTObjectMock mock = rto;
         manager.activateManager();
@@ -66,11 +70,36 @@ public class ExtTrigExecutionContextTests extends TestCase {
         assertEquals(ReturnCode_t.RTC_OK, ec.add_component(rto._this()));
         ec.m_worker.updateComponentList();
         assertEquals(ReturnCode_t.RTC_OK, ec.activate_component(rto.getObjRef()));
+        int jcc=0;
+        for(;;){
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if(mock.countLog("on_execute")==1){
+                break;
+            }
+            jcc++;
+            if(jcc>5){
+                break;
+            }
+        }
         ec.tick();
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        jcc=0;
+        for(;;){
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if(mock.countLog("on_execute")==2){
+                break;
+            }
+            jcc++;
+            if(jcc>5){
+                break;
+            }
         }
         // tick()呼出を行い、その回数とon_execute()の呼出回数が一致していることを確認する
         for (int tickCalledCount = 2; tickCalledCount < 5; tickCalledCount++) {
@@ -80,14 +109,15 @@ public class ExtTrigExecutionContextTests extends TestCase {
                 e.printStackTrace();
             }
             assertEquals(tickCalledCount, mock.countLog("on_execute"));
+            ec.tick();
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            ec.tick();
+            //ec.tick();
         }
-}
+    }
     
     /**
      * <p>name()メソッドのテスト

@@ -6,8 +6,8 @@ import java.util.Vector;
 import java.util.Random;
 import java.lang.Math;
 
-//import jp.go.aist.rtm.RTC.sample.SampleComponentDelete;
-//import jp.go.aist.rtm.RTC.sample.SampleComponentNew;
+import jp.go.aist.rtm.RTC.sample.SampleComponentDelete;
+import jp.go.aist.rtm.RTC.sample.SampleComponentNew;
 import jp.go.aist.rtm.RTC.util.Properties;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
@@ -72,7 +72,8 @@ public class NamingManagerTest extends TestCase {
         ManagerMock.clearInstance();
         this.m_mgr = null;
 
-        this.m_mgr = Manager.init(null);
+        String param[] = { "-o","logger.enable:NO" };
+        this.m_mgr = Manager.init(param);
 //        this.m_mgr.activateManager();
         this.m_pORB = m_mgr.getORB();
         this.m_pPOA = m_mgr.getPOA();
@@ -95,7 +96,6 @@ public class NamingManagerTest extends TestCase {
      * </p>
      */
     public void test_bindObject_and_unbindObject() throws Exception {
-
         RTObject_impl rto = new RTObject_impl(m_pORB, m_pPOA);
         assertNotNull(rto.getObjRef());
 
@@ -276,8 +276,8 @@ public class NamingManagerTest extends TestCase {
      *　・全要素の登録を解除できるか？
      *</pre>
      */
-/*
       public void test_component() {
+          m_mgr.clearModulesFactories();
           String component_conf[] = {
                   "implementation_id", "sample",
                   "type_name",         "",
@@ -310,6 +310,6 @@ public class NamingManagerTest extends TestCase {
           objects = nm.getObjects();
           assertEquals(0, objects.size());
       }
-*/
+
 
 }

@@ -3,6 +3,7 @@ package jp.go.aist.rtm.RTC.port;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
+import jp.go.aist.rtm.RTC.PublisherBaseFactory;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherBase;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherFactory;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherFlush;
@@ -53,38 +54,34 @@ public class PublisherFactoryTests extends TestCase {
     /**
      * <p>create()メソッドのテスト
      * <ul>
-     * <li>"dataport.subscription_type"を指定しない場合、デフォルトとしてPublisherNewが生成されるか？</li>
-     * <li>"dataport.subscription_type"に"New"を指定した場合、PublisherNewが生成されるか？</li>
-     * <li>"dataport.subscription_type"に"Periodic"を指定した場合、PublisherPeriodicが生成されるか？</li>
-     * <li>"dataport.subscription_type"に"Flush"を指定した場合、PublisherFlushが生成されるか？</li>
+     * <li>"New"を指定した場合、PublisherNewが生成されるか？</li>
+     * <li>"Periodic"を指定した場合、PublisherPeriodicが生成されるか？</li>
+     * <li>"Flush"を指定した場合、PublisherFlushが生成されるか？</li>
      * </ul>
      * </p>
      */
     public void test_create() {
-        PublisherFactory factory = new PublisherFactory();
-        NullConsumer consumer = new NullConsumer();
+        //PublisherFactory factory = new PublisherFactory();
+        PublisherBaseFactory<PublisherBase,String> factory
+                = PublisherBaseFactory.instance();
+        factory.addFactory("new",
+                    new PublisherNew(),
+                    new PublisherNew());
+        factory.addFactory("periodic",
+                    new PublisherPeriodic(),
+                    new PublisherPeriodic());
+        factory.addFactory("flush",
+                    new PublisherFlush(),
+                    new PublisherFlush());
         
-        // (1) "dataport.subscription_type"を指定しない場合、デフォルトとしてPublisherNewが生成されるか？
-        Properties propDefault = new Properties();
-        PublisherBase publisherDefault = factory.create(consumer, propDefault);
-        assertTrue( publisherDefault instanceof PublisherNew);
-        
-        // (2) "dataport.subscription_type"に"New"を指定した場合、PublisherNewが生成されるか？
-        Properties propNew = new Properties();
-        propNew.setProperty("dataport.subscription_type", "New");
-        PublisherBase publisherNew = factory.create(consumer, propNew);
-        assertNotNull( publisherNew instanceof PublisherNew);
-        
-        // (3) "dataport.subscription_type"に"Periodic"を指定した場合、PublisherPeriodicが生成されるか？
-        Properties propPeriodic = new Properties();
-        propPeriodic.setProperty("dataport.subscription_type", "Periodic");
-        PublisherBase publisherPeriodic = factory.create(consumer, propPeriodic);
-        assertNotNull(publisherPeriodic instanceof PublisherPeriodic);
-        
-        // (4) "dataport.subscription_type"に"Flush"を指定した場合、PublisherFlushが生成されるか？
-        Properties propFlush = new Properties();
-        propFlush.setProperty("dataport.subscription_type", "Flush");
-        PublisherBase publisherFlush = factory.create(consumer, propFlush);
-        assertTrue( publisherFlush instanceof PublisherFlush);
+        // "New"を指定した場合、PublisherNewが生成されるか？
+        PublisherBase publisherNew = factory.createObject("new");
+        assertEquals( publisherNew.getName(), "new");
+        // "Periodic"を指定した場合、PublisherPeriodicが生成されるか？
+        PublisherBase publisherPeriodic = factory.createObject("periodic");
+        assertEquals( publisherPeriodic.getName(), "periodic");
+        // "Flush"を指定した場合、PublisherFlushが生成されるか？
+        PublisherBase publisherFlush = factory.createObject("flush");
+        assertEquals( publisherFlush.getName(), "flush");
     }
 }

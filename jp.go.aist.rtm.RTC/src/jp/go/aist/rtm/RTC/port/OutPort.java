@@ -275,6 +275,8 @@ public class OutPort<DataType> extends OutPortBase {
         this.m_OnOverflow = null;
         this.m_OnUnderflow = null;
 
+        this.m_directValue = valueRef;
+        this.m_directNewData = false;
 
         Class cl = valueRef.v.getClass();
         String str = cl.getName();
@@ -352,27 +354,41 @@ public class OutPort<DataType> extends OutPortBase {
      *   {@.en Writing result (Successful:true, Failed:false)}
      *
      */
-    public boolean write(final DataType value) {
+    //public boolean write(final DataType value) {
+    public boolean write(DataType value) {
+        //DataType _value = value
         rtcout.println(Logbuf.TRACE, "DataType write()");
-
         if (m_OnWrite != null) {
             m_OnWrite.run(value);
             rtcout.println(Logbuf.TRACE, "OnWrite called");
         }
 
         // 1) direct connection
+/*
         synchronized (m_directNewDataMutex){
             rtcout.println(Logbuf.DEBUG, "Direct data transfer");
             if (m_OnWriteConvert != null) {
                 m_value.v = m_OnReadConvert.run(m_value.v);
                 rtcout.println(Logbuf.DEBUG, 
                      "OnReadConvert for direct data called");
-                m_OnWriteConvert.run(value);
+                value = m_OnWriteConvert.run(value);
                 m_value.v = value;
                 return true;
             }
         }
+*/
         // 2) network connection
+        // check number of connectors
+        synchronized (m_connectors){
+            int conn_size = m_connectors.size();
+            if (!(conn_size > 0)) { 
+                return false; 
+            }
+            m_status.setSize(conn_size);
+        }
+        if (m_OnWriteConvert != null) {
+            value = m_OnWriteConvert.run(value);
+        }
         boolean result = true;
         Vector<String> disconnect_ids = new Vector<String>();
         synchronized (m_connectorsMutex){
@@ -380,49 +396,61 @@ public class OutPort<DataType> extends OutPortBase {
             synchronized (m_connectors){
                 // check number of connectors
                 int conn_size = m_connectors.size();
-                if (!(conn_size > 0)) { 
-                    return false; 
-                }
+                //if (!(conn_size > 0)) { 
+                //    return false; 
+                //}
         
                 // set timestamp
 //                set_timestamp(value);
 
-                m_status.setSize(conn_size);
+                //m_status.setSize(conn_size);
 
                 for (int i=0, len=conn_size; i < len; ++i) {
                     ReturnCode ret;
                     // data -> (conversion) -> CDR stream
-                    if (m_OnWriteConvert != null) {
-                        rtcout.println(Logbuf.DEBUG, 
+                    if (!m_connectors.elementAt(i).directMode()) {
+/*
+                        if (m_OnWriteConvert != null) {
+                            rtcout.println(Logbuf.DEBUG, 
                                 "m_connectors.OnWriteConvert called");
-                        ret = m_connectors.elementAt(i).write(
+                            ret = m_connectors.elementAt(i).write(
                                                 m_OnWriteConvert.run(value));
-                    }
-                    else{
+                        }
+                        else{
+                            rtcout.println(Logbuf.DEBUG, 
+                                "m_connectors.write called");
+                            ret = m_connectors.elementAt(i).write(value);
+                        }
+*/
                         rtcout.println(Logbuf.DEBUG, 
                                 "m_connectors.write called");
                         ret = m_connectors.elementAt(i).write(value);
-                    }
-
-                    m_status.add(i, ret);
-                    if (ret.equals(ReturnCode.PORT_OK)) {
-                        continue;
-                    }
-
-                    result = false;
-                    String id = m_connectors.elementAt(i).id();
-
-                    if (ret.equals(ReturnCode.CONNECTION_LOST)) {
-                        rtcout.println(Logbuf.TRACE, "connection_lost id: "+id);
-                        synchronized (m_onConnectionLost_mutex){
-                            if(m_onConnectionLost != null) {
-                                RTC.ConnectorProfile prof = findConnProfile(id);
-                                RTC.ConnectorProfileHolder holder 
-                                    = new RTC.ConnectorProfileHolder(prof);
-                                m_onConnectionLost.run(holder);
-                            }
+                        m_status.add(i, ret);
+                        if (ret.equals(ReturnCode.PORT_OK)) {
+                            continue;
                         }
-                        disconnect_ids.add(id);
+
+                        result = false;
+                        String id = m_connectors.elementAt(i).id();
+
+                        if (ret.equals(ReturnCode.CONNECTION_LOST)) {
+                            rtcout.println(Logbuf.TRACE, "connection_lost id: "+id);
+                            synchronized (m_onConnectionLost_mutex){
+                                if(m_onConnectionLost != null) {
+                                    RTC.ConnectorProfile prof = findConnProfile(id);
+                                    RTC.ConnectorProfileHolder holder 
+                                        = new RTC.ConnectorProfileHolder(prof);
+                                    m_onConnectionLost.run(holder);
+                                }
+                            }
+                            disconnect_ids.add(id);
+                        }
+                    }
+                    else{
+                        synchronized (m_directNewDataMutex){
+                            this.m_directValue.v = value;
+                            this.m_directNewData = true;
+                        }
                     }
                 }
             }
@@ -750,9 +778,13 @@ public class OutPort<DataType> extends OutPortBase {
      */
     public void read(DataRef<DataType> data) {
         rtcout.println(Logbuf.TRACE, "read()");
-        synchronized (m_value){
-            data.v  = m_value.v;
+        synchronized (m_directNewDataMutex){
+            data.v  = this.m_directValue.v;
+            this.m_directNewData = false;
         }
+        //synchronized (m_value){
+        //    data.v  = m_value.v;
+        //}
 
     }
 
@@ -781,5 +813,7 @@ public class OutPort<DataType> extends OutPortBase {
     private static String m_directNewDataMutex = new String();
 
     private int m_propValueIndex;
+    private DataRef<DataType> m_directValue;
+    private boolean m_directNewData;
 
 }

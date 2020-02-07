@@ -111,9 +111,8 @@ class FactoryJava extends FactoryBase {
         --m_Number;
         m_policy.onDelete(comp);
         m_Delete.deleteRtc(comp);
-        return comp;
+        return null;
     }
-        
     /**
      * {@.ja コンポーネント生成用インタフェース}
      * {@.en Interface of created component}

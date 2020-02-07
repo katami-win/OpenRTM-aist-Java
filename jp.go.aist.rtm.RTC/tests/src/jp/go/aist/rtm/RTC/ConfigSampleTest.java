@@ -25,7 +25,13 @@ public class ConfigSampleTest extends SampleTest {
         rootPath = rootPath.substring(0,rootPath.length()-1);
         configPath = rootPath + "src\\RTMExamples\\configSample\\rtc.conf";
         //
-        String args[] = {"-f", configPath };
+        //String args[] = {"-f", configPath };
+        String args[] = {
+                         "-o", "corba.nameservers:localhost:2809",
+                         "-o", "naming.formats:%n.rtc",
+                         "-o", "logger.enable: NO",
+        };
+
         try {
             manager = new Manager();
             manager.initManager(args);

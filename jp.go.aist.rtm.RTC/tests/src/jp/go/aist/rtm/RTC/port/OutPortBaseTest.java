@@ -986,6 +986,8 @@ public class OutPortBaseTest extends TestCase {
     
     protected void tearDown() throws Exception {
         super.tearDown();
+        rtcout.removeStream(m_fh);
+        rtcout.removeStreamAll();
     }
 
     /**

@@ -1,6 +1,8 @@
 package jp.go.aist.rtm.RTC;
 
 import java.util.Vector;
+import java.util.Map;
+import java.io.File;
 
 import jp.go.aist.rtm.RTC.log.Logbuf;
 
@@ -36,7 +38,9 @@ public class ManagerTest extends TestCase {
 
     private static class ManagerMock extends Manager {
         public static void clearInstance() {
-            manager = null;
+            if(manager != null){
+                manager = null;
+            }
         }
     }
 
@@ -317,9 +321,59 @@ public class ManagerTest extends TestCase {
 
     protected void tearDown() throws Exception {
         super.tearDown();
+        if(m_mgr!=null){
+            Properties properties = m_mgr.getConfig();
+            String rtcname = properties.getProperty("logger.file_name");
+            rtcname = rtcname.replace("./","");
+            File dir = new File("./");
+            String[] files = dir.list();
+            for(String fname : files){
+                if(fname.matches(rtcname+".+")){
+                    System.out.println(fname);
+                    File file = new File(fname);
+                    if (file.exists()){
+                        file.delete();
+                    }
+                }
+            }
+        }
         m_mgr = null;
     }
 
+    public String m_param[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","naming.formats: %n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:yes",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
+    };
+    public String m_param1[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+    };
+    public String m_param3[] = {
+            "-o","logger.enable:no",
+            "-o","manager.modules.config_ext:so",
+            "-o","manager.shutdown_on_nortcs:no",
+    };
+    public String m_param4[] = {
+            "-o","logger.enable:no",
+            "-o","exec_cxt.evdriven.type:ExtTrigEC",
+            "-o","corba.nameservers:localhost:2809",
+            "-o","manager.shutdown_on_nortcs:no",
+    };
+    public String m_param5[] = {
+            "-o","logger.enable:NO",
+            "-o","logger.file_name:${TERM}",
+            "-o","manager.shutdown_on_nortcs:no",
+    };
     /**
      * <p>init()メソッドのテスト
      * <ul>
@@ -329,7 +383,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_init_without_arguments() {
         // コマンドライン引数なしでinit()を正常に呼出して、インスタンスを取得できるか？
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
     }
 
@@ -341,7 +395,7 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_instance() {
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
 
         // instance()を通じて取得したインスタンスは、init()時に得たインスタンスと同一か？
@@ -358,7 +412,15 @@ public class ManagerTest extends TestCase {
      */
     public void test_instance_without_init() {
         // 事前にinit()を呼出さずにinstance()を呼出した場合、正常にインスタンスが生成されるか？
-        assertNotNull(Manager.instance());
+        Manager manager = Manager.instance();
+        assertNotNull(manager);
+        //assertNotNull(Manager.instance());
+        Properties properties = manager.getConfig();
+        String rtcname = properties.getProperty("logger.file_name");
+        File file = new File(rtcname);
+        if (file.exists()){
+            file.delete();
+        }
     }
 
     /**
@@ -369,7 +431,7 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_terminate_immediately_after_the_initialization() {
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
         assertNotNull(m_mgr.getORB());
         assertNotNull(m_mgr.getPOA());
@@ -393,7 +455,7 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_terminate_after_the_activation() {
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         
         assertNotNull(m_mgr);
         assertNotNull(m_mgr.getORB());
@@ -427,13 +489,18 @@ public class ManagerTest extends TestCase {
         rootPath = rootPath.substring(0,rootPath.length()-1);
         String testPath = rootPath + "tests/fixtures/Manager/fixture2.conf";
         String param[] = {"-f", testPath };
-        m_mgr = Manager.init(param);
+	m_mgr = Manager.init(param);
         assertNotNull(m_mgr);
         
         // confファイルで指定した各種設定を、getConfig()を通じて正しく取得できるか？
         Properties properties = m_mgr.getConfig();
         assertEquals("yes", properties.getProperty("logger.enable"));
         assertEquals("fixture2.log", properties.getProperty("logger.file_name"));
+        String rtcname = properties.getProperty("logger.file_name");
+        File file = new File(rtcname);
+        if (file.exists()){
+            file.delete();
+        }
     }
 
     /**
@@ -449,7 +516,7 @@ public class ManagerTest extends TestCase {
         ModuleMock.setLogger(logger);
         
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
         
         // 初期化プロシージャを登録する
@@ -470,7 +537,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_runManager_no_block() throws Exception {
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
 
         // オブジェクトを生成して、参照を得る
@@ -517,7 +584,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_runManager_block() throws Exception {
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
 
         // オブジェクトを生成して、参照を得る
@@ -565,13 +632,8 @@ public class ManagerTest extends TestCase {
      */
     public void test_load() throws Exception {
         Manager manager = null;
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/src/jp/go/aist/rtm/RTC/sample/rtc.conf";
-        String param[] = {"-f", testPath };
         try {
-            manager = Manager.init(param);
+            manager = Manager.init(m_param);
         } catch (Exception e) {
             e.printStackTrace();
             fail();
@@ -601,7 +663,7 @@ public class ManagerTest extends TestCase {
         assertEquals(0, modules.size());
         modules = manager.getLoadableModules();
         assertEquals(0, modules.size());
-    }
+   }
 
     /**
      * <p>unload()メソッドのテスト
@@ -611,12 +673,7 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_unload() throws Exception {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture3.conf";
-        String param[] = {"-f", testPath };
-        m_mgr = Manager.init(param);
+        m_mgr = Manager.init(m_param3);
         assertNotNull(m_mgr);
 
         m_mgr.load("jp.go.aist.rtm.RTC.util.TimeValue", "sign");
@@ -641,13 +698,8 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_unloadAll() throws Exception {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture3.conf";
-        String param[] = {"-f", testPath };
-        m_mgr = Manager.init(param);
-        assertNotNull(m_mgr);
+        m_mgr = Manager.init(m_param3);
+	assertNotNull(m_mgr);
 
         m_mgr.load("jp.go.aist.rtm.RTC.util.TimeValue", "sign");
         m_mgr.load("jp.go.aist.rtm.RTC.util.Properties", "clear");
@@ -667,7 +719,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_registerFactory() {
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
         
         // Factoryを正常に登録できるか？
@@ -689,7 +741,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_registerECFactory() {
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
         
         // 正常にECFactoryを登録できるか？
@@ -708,7 +760,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_getModulesFactories() {
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
         // Manager.init() 中で、initComposite()からregisterFactory()を呼び出している。
 
@@ -738,13 +790,8 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_createComponent_DataFlowComponent() throws Exception {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture4.conf";
-        String param[] = {"-f", testPath };
         // 初期化を行う
-        m_mgr = Manager.init(param);
+        m_mgr = Manager.init(m_param4);
         assertNotNull(m_mgr);
         
         assertNotNull(m_mgr.getORB());
@@ -781,7 +828,7 @@ public class ManagerTest extends TestCase {
         NamingManager nmgr = new NamingManager(m_mgr);
         final String name_server = "localhost:2809";
         nmgr.registerNameServer("corba", name_server);
-        assertTrue(canResolve(name_server, "DataFlowComponent0", "rtc"));
+        assertEquals(comp, m_mgr.getComponent("DataFlowComponent0"));
     }
 
     /**
@@ -794,7 +841,7 @@ public class ManagerTest extends TestCase {
      */
     public void test_createComponent_with_illegal_module_name() throws Exception {
         // 初期化を行う
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
         assertNotNull(m_mgr.getORB());
         assertNotNull(m_mgr.getPOA());
@@ -809,12 +856,7 @@ public class ManagerTest extends TestCase {
     }
 
     public void test_createComponent_failed_in_bindExecutionContext() throws Exception {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture4.conf";
-        String param[] = {"-f", testPath };
-        m_mgr = Manager.init(param);
+        m_mgr = Manager.init(m_param4);
         assertNotNull(m_mgr);
         assertNotNull(m_mgr.getORB());
         assertNotNull(m_mgr.getPOA());
@@ -840,6 +882,10 @@ public class ManagerTest extends TestCase {
         RTObject_impl comp = mgr2.createComponent("DataFlowComponentFactory");
         assertNull(comp);
         m_mgr.terminate(0.0);
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+        }
     }
 
     /**
@@ -851,16 +897,11 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_cleanupComponent() throws Exception {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture4.conf";
-        String param[] = {"-f", testPath };
         if(m_mgr != null){
             System.out.println("m_mgr != null");
             m_mgr.shutdown();
         }
-        m_mgr = Manager.init(param);
+        m_mgr = Manager.init(m_param4);
         assertNotNull(m_mgr);
         assertNotNull(m_mgr.getORB());
         assertNotNull(m_mgr.getPOA());
@@ -912,12 +953,7 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_getComponents() throws Exception {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture4.conf";
-        String param[] = {"-f", testPath };
-        m_mgr = Manager.init(param);
+        m_mgr = Manager.init(m_param4);
         assertNotNull(m_mgr);
         assertNotNull(m_mgr.getORB());
         assertNotNull(m_mgr.getPOA());
@@ -975,17 +1011,13 @@ public class ManagerTest extends TestCase {
      */
     public void test_register() {
         Manager manager = null;
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/src/jp/go/aist/rtm/RTC/sample/rtc.conf";
-        String param[] = {"-f", testPath };
         try {
-            manager = Manager.init(param);
+            manager = Manager.init(m_param);
         } catch (Exception e) {
             e.printStackTrace();
             fail();
         }
+        assertNotNull(manager);
         manager.activateManager();
         manager.clearModulesFactories();
         manager.clearModules();
@@ -1032,22 +1064,19 @@ public class ManagerTest extends TestCase {
      */
     public void test_initManager_Logger() {
         Manager manager = new Manager();
-        String strout = "INFO     :OpenRTM-aist-1.0.0\nINFO     :Copyright (C) 2003-2009\n" +
-                        "INFO     :  Noriaki Ando\nINFO     :  Task-intelligence Research Group,\n" + 
-                        "INFO     :  Intelligent Systems Research Institute, AIST\n" +
-                        "INFO     :Manager starting.\nINFO     :Starting local logging.\n";
-                        
-        String param[] = {"corba.nameservers:localhost",
-                "corba.id.omniORB",
-                "corba.endpoint.test",
-                "naming.formats: %n.rtc",
-                "logger.file_name.logging",
-                "timer.enable.YES",
-                "timer.tick.1000",
-                "logger.enable.YES",
-                "manager.name.test",
-                "logger.date_format.xxx",
-                "logger.log_level." + manager.rtcout.DEBUG_H};
+        String param[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:test",
+            "-o","naming.formats:%n.rtc",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:YES",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","logger.date_format:xxx",
+            "-o","manager.shutdown_on_nortcs:no",
+            "-o","logger.log_level:" + manager.rtcout.DEBUG_H};
         try {
             manager.initManager(param);
             manager.initLogger();
@@ -1070,11 +1099,21 @@ public class ManagerTest extends TestCase {
      */
     public void test_initManager_NoTimer() {
         Manager manager = new Manager();
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/src/jp/go/aist/rtm/RTC/sample/rtc_notimer.conf";
-        String param[] = {"-f", testPath };
+        String param[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","naming.formats: %n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:no",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","exec_cxt.evdriven.type:jp.go.aist.rtm.RTC.ExtTrigExecutionContext",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
         try {
             manager.initManager(param);
         } catch (Exception e) {
@@ -1094,17 +1133,20 @@ public class ManagerTest extends TestCase {
      */
     public void test_initORB() {
         Manager manager = new Manager();
-        String param[] = {"corba.nameservers:localhost",
-                "corba.id.omniORB",
-                "corba.endpoint.test",
-                "naming.formats: %n.rtc",
-                "logger.file_name.logging",
-                "timer.enable.YES",
-                "timer.tick.1000",
-                "logger.enable.YES",
-                "manager.name.test",
-                "logger.date_format.xxx",
-                "logger.log_level." + manager.rtcout.DEBUG_H};
+        String param[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:test",
+            "-o","naming.formats:%n.rtc",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:YES",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","logger.date_format:xxx",
+            "-o","manager.shutdown_on_nortcs:no",
+            "-o","logger.log_level:" + manager.rtcout.DEBUG_H
+        };
         try {
             manager.initManager(param);
             manager.initORB();
@@ -1126,18 +1168,21 @@ public class ManagerTest extends TestCase {
      */
     public void test_initNaming() {
         Manager manager = new Manager();
-        String param[] = {"corba.nameservers:localhost",
-                "corba.id.omniORB",
-                "corba.endpoint.test",
-                "naming.enable.Yes",
-                "naming.formats: %n.rtc",
-                "logger.file_name.logging",
-                "timer.enable.YES",
-                "timer.tick.1000",
-                "logger.enable.YES",
-                "manager.name.test",
-                "logger.date_format.xxx",
-                "logger.log_level." + manager.rtcout.DEBUG_H};
+        String param[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:test",
+            "-o","naming.enable:Yes",
+            "-o","naming.formats:%n.rtc",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:YES",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","logger.date_format:xxx",
+            "-o","manager.shutdown_on_nortcs:no",
+            "-o","logger.log_level:" + manager.rtcout.DEBUG_H
+        };
         try {
             manager.initManager(param);
             manager.initORB();
@@ -1161,7 +1206,8 @@ public class ManagerTest extends TestCase {
         Manager manager = Manager.instance();
         assertNotNull(manager.m_pORB);
         assertNotNull(manager.m_namingManager);
-    }
+
+   }
 
     /**
      * <p>マネージャのシャットダウンチェック
@@ -1172,13 +1218,8 @@ public class ManagerTest extends TestCase {
      */
     public void test_Shutdown() {
         Manager manager = null;
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/src/jp/go/aist/rtm/RTC/sample/rtc.conf";
-        String param[] = {"-f", testPath };
         try {
-            manager = Manager.init(param);
+            manager = Manager.init(m_param);
         } catch (Exception e) {
             e.printStackTrace();
             fail();
@@ -1212,7 +1253,7 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_getFactoryProfiles() {
-        m_mgr = Manager.init(null);
+        m_mgr = Manager.init(m_param1);
         assertNotNull(m_mgr);
 
         // Factoryを正常に登録できるか？
@@ -1238,17 +1279,12 @@ public class ManagerTest extends TestCase {
      * </p>
      */
     public void test_formatString() {
-        java.io.File fileCurrent = new java.io.File(".");
-        String rootPath = fileCurrent.getAbsolutePath();
-        rootPath = rootPath.substring(0,rootPath.length()-1);
-        String testPath = rootPath + "tests/fixtures/Manager/fixture5.conf";
-        String param[] = {"-f", testPath };
-        m_mgr = Manager.init(param);
+        m_mgr = Manager.init(m_param5);
         assertNotNull(m_mgr);
-
         // 環境変数 TERM の値 xterm が取得できていればOK
         Properties properties = m_mgr.getConfig();
-        assertEquals("kterm", properties.getProperty("logger.file_name"));
+        Map<String, String> env = System.getenv();
+        assertEquals(env.get("TERM"), properties.getProperty("logger.file_name"));
 
     }
 

@@ -190,51 +190,35 @@ public class StringUtilTests extends TestCase {
         assertFalse(StringUtil.toBool("UNKNOWN", T, F, false));
     }
         
-//    /*!
-//     * @brief isAbsolutePath()メソッドのテスト
-//     * 
-//     * <ul>
-//     * <li>先頭文字が「/」の場合、絶対パスと判定されるか？</li>
-//     * <li>先頭３文字が「../」の場合、相対パスと判定されるか？</li>
-//     * <li>先頭３文字が、アルファベット + 「:\」の場合、絶対パスと判定されるか？</li>
-//     * <li>先頭３文字が「..\」の場合、相対パスと判定されるか？</li>
-//     * <li>先頭２文字が「\\」の場合、絶対パスと判定されるか？</li>
-//     * </ul>
-//     */
-//    void test_isAbsolutePath()
-//    {
-//        // (1) 先頭文字が「/」の場合、絶対パスと判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(true, isAbsolutePath("/usr/local/lib"));
-//        
-//        // (2) 先頭３文字が「../」の場合、相対パスと判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(false, isAbsolutePath("../usr/local/lib"));
-//        
-//        // (3) 先頭３文字が、アルファベット + 「:\」の場合、絶対パスと判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(true, isAbsolutePath("C:\\Program Files"));
-//        
-//        // (4) 先頭３文字が「..\」の場合、相対パスと判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(false, isAbsolutePath("..\\Program Files"));
-//        
-//        // (5) 先頭２文字が「\\」の場合、絶対パスと判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(true, isAbsolutePath("\\\\server01"));
-//    }
-//    
-//    /*!
-//     * @brief isURL()メソッドのテスト
-//     * 
-//     * <ul>
-//     * <li>1文字以上の文字列 + 「://」で始まる場合に、URLとして判定されるか？</li>
-//     * <li>「://」で始まる場合に、URLではないと判定されるか？</li>
-//     * </ul>
-//     */
-//    void test_isURL()
-//    {
-//        // (1) 1文字以上の文字列＋「://」で始まる場合に、URLとして判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(true, isURL("http://domain"));
-//        
-//        // (2) 「://」で始まる場合に、URLではないと判定されるか？
-//        CPPUNIT_ASSERT_EQUAL(false, isURL("://domain"));
-//    }
+    /*!
+     * @brief isAbsolutePath()メソッドのテスト
+     *
+     * <ul>
+     * <li>先頭文字が「/」の場合、絶対パスと判定されるか？</li>
+     * <li>先頭３文字が「../」の場合、相対パスと判定されるか？</li>
+     * <li>先頭３文字が、アルファベット + 「:\」の場合、絶対パスと判定されるか？</li>
+     * <li>先頭３文字が「..\」の場合、相対パスと判定されるか？</li>
+     * <li>先頭２文字が「\\」の場合、絶対パスと判定されるか？</li>
+     * </ul>
+     */
+    public void test_isAbsolutePath()
+    {
+        // (1) 先頭文字が「/」の場合、絶対パスと判定されるか？
+        assertEquals(true, StringUtil.isAbsolutePath("/usr/local/lib"));
+
+        // (2) 先頭３文字が「../」の場合、相対パスと判定されるか？
+        assertEquals(false, StringUtil.isAbsolutePath("../usr/local/lib"));
+
+        // (3) 先頭３文字が、アルファベット + 「:\」の場合、絶対パスと判定されるか？
+        assertEquals(true, StringUtil.isAbsolutePath("C:\\Program Files"));
+
+        // (4) 先頭３文字が「..\」の場合、相対パスと判定されるか？
+        assertEquals(false, StringUtil.isAbsolutePath("..\\Program Files"));
+
+        // (5) 先頭２文字が「\\」の場合、絶対パスと判定されるか？
+        assertEquals(true, StringUtil.isAbsolutePath("\\\\server01"));
+    }
+
     /**
      * <p>unique_sv()メソッドのテスト
      * <ul>

@@ -159,33 +159,40 @@ public class PublisherPeriodic extends PublisherBase implements Runnable, Object
         int preskip = readable + m_leftskip;
         int loopcnt = preskip/(m_skipn +1);
         int postskip = m_skipn - m_leftskip;
-        for (int i = 0; i < loopcnt; ++i) {
-            m_buffer.advanceRptr(postskip);
-            OutputStream cdr = m_buffer.get();
-            DataRef<OutputStream> dataref = new DataRef<OutputStream>(cdr);
-            //onBufferRead(cdr);
-            onBufferRead(dataref);
-            cdr = (EncapsOutputStreamExt)dataref.v;
-
-            dataref.v = cdr;
-            onSend(dataref);
-            cdr = (EncapsOutputStreamExt)dataref.v;
-            ret = m_consumer.put(cdr);
-            if (!ret.equals(ReturnCode.PORT_OK)) {
-                m_buffer.advanceRptr(-postskip);
-                rtcout.println(Logbuf.DEBUG, ret + " = consumer.put()");
-                return invokeListener(ret, cdr);
-            }
-            dataref.v = cdr;
-            onReceived(dataref);
-            cdr = (EncapsOutputStreamExt)dataref.v;
-            //onReceived(cdr);
-            postskip = m_skipn +1;
+        if(loopcnt == 0){
+            m_buffer.advanceRptr(readable);
+            m_leftskip = preskip % (m_skipn +1);
+            return ret;
         }
+        else {
+            for (int i = 0; i < loopcnt; ++i) {
+                m_buffer.advanceRptr(postskip);
+                OutputStream cdr = m_buffer.get();
+                DataRef<OutputStream> dataref = new DataRef<OutputStream>(cdr);
+                //onBufferRead(cdr);
+                onBufferRead(dataref);
+                cdr = (EncapsOutputStreamExt)dataref.v;
 
-        m_buffer.advanceRptr(readable);
-        m_leftskip = preskip % (m_skipn +1);
-        return ret;
+                dataref.v = cdr;
+                onSend(dataref);
+                cdr = (EncapsOutputStreamExt)dataref.v;
+                ret = m_consumer.put(cdr);
+                if (!ret.equals(ReturnCode.PORT_OK)) {
+                    m_leftskip = m_skipn ;
+                    rtcout.println(Logbuf.DEBUG, ret + " = consumer.put()");
+                    return invokeListener(ret, cdr);
+                }
+                m_leftskip = preskip % (m_skipn +1);
+                dataref.v = cdr;
+                onReceived(dataref);
+                cdr = (EncapsOutputStreamExt)dataref.v;
+                //onReceived(cdr);
+                postskip = m_skipn +1;
+            }
+
+            m_buffer.advanceRptr(1);
+            return ret;
+        }
     }
     /**
      * <p> pushNew </p>
@@ -225,7 +232,6 @@ public class PublisherPeriodic extends PublisherBase implements Runnable, Object
         m_buffer.advanceRptr();
         return ret;
     }
-    
     /**
      * <p>当該Publisherを駆動するスレッドコンテキストです。コンシューマの送出処理が呼び出されます。</p>
      */

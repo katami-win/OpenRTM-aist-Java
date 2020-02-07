@@ -112,7 +112,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_start_invoking_on_startup() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -164,7 +168,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_start_with_not_alive() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -192,7 +200,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_stop_invoking_on_shutdown() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -316,7 +328,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_set_rate_invoking_on_rate_changed() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -347,7 +363,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_add_invoking_attach_executioncontext() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -396,7 +416,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_remove_invoking_detach_executioncontext() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -428,7 +452,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_remove_with_not_attached_component() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -451,7 +479,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_remove_when_component_is_still_active() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -491,7 +523,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_activate_component_invoking_on_activated() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -536,7 +572,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_activate_component_without_participating() {
  
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -559,7 +599,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_activate_component_in_Error_state() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -593,7 +637,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_activate_component_not_in_Alive_state() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -623,7 +671,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_deactivate_component_invoking_on_deactivated() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -647,7 +699,7 @@ public class PeriodicExecutionContextTests extends TestCase {
         assertEquals(0, mock.countLog("on_deactivated"));
 
         // コンポーネントをdeactivateする
-        assertEquals(ReturnCode_t.RTC_OK, ec.deactivate_component(mock._this()));
+        assertEquals(ReturnCode_t.RTC_OK.value(), ec.deactivate_component(mock._this()).value());
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -668,7 +720,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_deactivate_component_without_participating() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -691,7 +747,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_deactivate_component_not_in_Alive_state() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -704,7 +764,7 @@ public class PeriodicExecutionContextTests extends TestCase {
         ec.m_worker.updateComponentList();
         
         // コンポーネントをactivateする
-        assertEquals(ReturnCode_t.RTC_OK, ec.activate_component(mock._this()));
+        assertEquals(ReturnCode_t.RTC_OK.value(), ec.activate_component(mock._this()).value());
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -729,7 +789,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_reset_component_invoking_on_reset() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -750,13 +814,13 @@ public class PeriodicExecutionContextTests extends TestCase {
             Thread.sleep(100);
         } catch (InterruptedException e) {
         }
-        assertEquals(LifeCycleState.ERROR_STATE, ec.get_component_state(mock._this()));
+        assertEquals(LifeCycleState.ERROR_STATE.value(), ec.get_component_state(mock._this()).value());
         
         // この時点では、on_reset()は1回も呼び出されていないはず
         assertEquals(0, mock.countLog("on_reset"));
 
         // reset_component()を呼出し、成功することを確認する
-        assertEquals(ReturnCode_t.RTC_OK, ec.reset_component(mock._this()));
+        assertEquals(ReturnCode_t.RTC_OK.value(), ec.reset_component(mock._this()).value());
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -776,7 +840,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_reset_component_not_in_Error_state() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         
@@ -803,7 +871,11 @@ public class PeriodicExecutionContextTests extends TestCase {
     public void test_reset_component_not_in_Alive_state() {
 
         // RTObjectを生成する
-        Manager manager = Manager.instance();
+        String args[] = {
+            "-o","logger.enable:no",
+            "-o","manager.shutdown_on_nortcs:no",
+        };
+        Manager manager = Manager.init(args);
         DataFlowComponentMock mock = new DataFlowComponentMock(manager); // will be deleted automatically
         manager.activateManager();
         

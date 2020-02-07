@@ -426,6 +426,10 @@ public class OutPortPushConnectorTest extends TestCase {
                       new PublisherNewMock(),
                       new PublisherNewMock());
 
+          factory1.addFactory("nonblock",
+                      new PublisherNewMock(),
+                      new PublisherNewMock());
+
           final BufferFactory<RingBuffer<OutputStream>,String> factoryB 
               = BufferFactory.instance();
           factoryB.addFactory("ring_buffer",
@@ -451,6 +455,7 @@ public class OutPortPushConnectorTest extends TestCase {
               m_orb = null;
           }
           rtcout.removeStream(m_fh);
+          rtcout.removeStreamAll();
       }
   		
 
@@ -461,8 +466,8 @@ public class OutPortPushConnectorTest extends TestCase {
       public void test_OutPortPushConnector()  throws Exception {
 
           String logfile = "test_OutPortPushConnector.log";
-          m_fh = new FileHandler(logfile);
-          rtcout.addStream(m_fh);
+          FileHandler fh = new FileHandler(logfile);
+          rtcout.addStream(fh);
           rtcout.setLevel("TRACE");
 
           RTC.ConnectorProfile prof = new RTC.ConnectorProfile();
@@ -596,6 +601,7 @@ public class OutPortPushConnectorTest extends TestCase {
           catch(Exception e) {
               assertTrue(e.getMessage().equals("bad_alloc()"));
           }
+          rtcout.removeStream(fh);
       }
       /**
        * <p> write </p>
@@ -603,8 +609,8 @@ public class OutPortPushConnectorTest extends TestCase {
        */
       public void test_write()   throws Exception {
           String logfile = "test_write.log";
-          m_fh = new FileHandler(logfile);
-          rtcout.addStream(m_fh);
+          FileHandler fh = new FileHandler(logfile);
+          rtcout.addStream(fh);
           rtcout.setLevel("TRACE");
           RTC.ConnectorProfile prof = new RTC.ConnectorProfile();
           NVListHolder prof_holder = new NVListHolder(prof.properties);
@@ -660,6 +666,7 @@ public class OutPortPushConnectorTest extends TestCase {
           //catch(Exception e) {
           //    fail("The exception not intended was thrown .");
           //}
+          rtcout.removeStream(fh);
   
   
       }
@@ -669,8 +676,8 @@ public class OutPortPushConnectorTest extends TestCase {
        */
       public void test_disconnect_getBuffer() throws Exception {
           String logfile = "test_disconnect_getBuffer.log";
-          m_fh = new FileHandler(logfile);
-          rtcout.addStream(m_fh);
+          FileHandler fh = new FileHandler(logfile);
+          rtcout.addStream(fh);
           rtcout.setLevel("TRACE");
           rtcout.println(rtcout.TRACE, "test_disconnect_getBuffer");
 
@@ -720,6 +727,7 @@ public class OutPortPushConnectorTest extends TestCase {
           catch(Exception e) {
               fail("The exception not intended was thrown .");
           }
+          rtcout.removeStream(fh);
   
       }
       /**

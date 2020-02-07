@@ -27,9 +27,7 @@ public class SDOOrganizationTest extends TestCase {
     
     protected void setUp() throws Exception {
         super.setUp();
-/*
         m_p01 = new Organization_impl();
-*/
     }
 
     protected void tearDown() throws Exception {
@@ -43,7 +41,6 @@ public class SDOOrganizationTest extends TestCase {
      *</pre> 
      */
     public void test_get_organization_id() {
-/*
         try {
             m_id = m_p01.get_organization_id();
         } catch (InvalidParameter e) {
@@ -56,7 +53,6 @@ public class SDOOrganizationTest extends TestCase {
             e.printStackTrace();
             fail();
         }
-*/
     }
 
     /**
@@ -69,7 +65,6 @@ public class SDOOrganizationTest extends TestCase {
      *</pre>
      */
     public void test_set_get_organization_property() {
-/*
         OrganizationProperty get_prop;
         OrganizationProperty set_prop = new OrganizationProperty();
         boolean ret;
@@ -90,15 +85,15 @@ public class SDOOrganizationTest extends TestCase {
         String str;
       
       try {
-          // プロパティの取得 未設定の場合nullが返される。
+          // プロパティの取得 未設定の場合でもnull以外が返される。
           get_prop = m_p01.get_organization_property();
-          assertNull(get_prop);
+          assertNotNull(get_prop);
     
           // 空のOrganizationPropertyをセットする。 OK.
-          // プロパティの中身はNULL
+          // プロパティの中身はNULLnull以外が返される。
           ret = m_p01.set_organization_property(set_prop);
           get_prop = m_p01.get_organization_property();
-          assertNull(get_prop.properties);
+          assertNotNull(get_prop.properties);
     
           nv.name = "hoge";
           ft = 11.111F;
@@ -209,7 +204,6 @@ public class SDOOrganizationTest extends TestCase {
             ex.getStackTrace();
             fail();
         }
-*/
     }   
 
     /**
@@ -221,7 +215,6 @@ public class SDOOrganizationTest extends TestCase {
      *</pre>
      */
     public void test_set_get_organization_property_value() {
-/*
         OrganizationProperty set_prop = new OrganizationProperty();
         boolean ret;
         short st;
@@ -332,7 +325,6 @@ public class SDOOrganizationTest extends TestCase {
             ex.getStackTrace();
             fail();
         }
-*/
     }
 
     /**
@@ -343,7 +335,6 @@ public class SDOOrganizationTest extends TestCase {
      *</pre>
      */
     public void test_set_get_organization_property_value_multi() {
-/*
         OrganizationProperty set_prop = new OrganizationProperty();
         boolean ret;
         short st;
@@ -433,7 +424,6 @@ public class SDOOrganizationTest extends TestCase {
             e.printStackTrace();
             fail();
         }
-*/
     }
     /**
      *<pre>
@@ -442,7 +432,6 @@ public class SDOOrganizationTest extends TestCase {
      *</pre>
      */
     public void test_remove_organization_property() {
-/*
         boolean ret;
         NVListHolder nvList = new NVListHolder();
         OrganizationProperty get_prop;
@@ -504,7 +493,6 @@ public class SDOOrganizationTest extends TestCase {
             ex.getStackTrace();
             fail();
         }
-*/
     }
 
     /**

@@ -10,8 +10,10 @@ import junit.framework.TestCase;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
 import org.omg.PortableServer.POA;
 
+import _SDOPackage.Configuration;
 import _SDOPackage.ConfigurationSet;
 import _SDOPackage.ConfigurationSetListHolder;
 import _SDOPackage.DeviceProfile;
@@ -23,6 +25,8 @@ import _SDOPackage.NotAvailable;
 import _SDOPackage.Organization;
 import _SDOPackage.OrganizationListHolder;
 import _SDOPackage.ParameterListHolder;
+import _SDOPackage.SDOService;
+import _SDOPackage.SDOServicePOA;
 import _SDOPackage.ServiceProfile;
 import _SDOPackage.ServiceProfileListHolder;
 import _SDOPackage._OrganizationStub;
@@ -37,9 +41,29 @@ public class SdoConfigurationTest extends TestCase {
     private Configuration_impl m_pConf;
     private ORB m_orb;
     private POA m_poa;
+    private SdoServiceAdmin m_sdoservice;
     
     public SdoConfigurationTest() {
     }
+    class ComponentObserverMock extends OpenRTM.ComponentObserverPOA{
+        public void update_status (OpenRTM.StatusKind status_kind, String hint){
+        }
+    }
+    class SDOServiceMock extends SDOServicePOA {
+    };
+    private class RTObject_impl_Mock extends RTObject_impl {
+        public RTObject_impl_Mock(Manager manager) {
+            super(manager);
+        }
+        public RTObject_impl_Mock(ORB orb, POA poa) {
+            super(orb,poa);
+        }
+        public Configuration_impl getConfiguration_impl(){
+            return m_pSdoConfigImpl;
+        }
+
+    }
+
     protected void setUp() throws Exception {
         super.setUp();
 /*
@@ -55,6 +79,20 @@ public class SdoConfigurationTest extends TestCase {
 //        manager.m_objManager.activate(m_pConf);
         m_orb = manager.getORB();
 */
+
+        String[] argv = {"-o","sdo.service.consumer.enabled_services:IDL:OpenRTM/ComponentObserver:1.0,INTERFACE_TYPE 0,INTERFACE_TYPE 1","-o","logger.enable:NO"};  
+        Manager manager = Manager.init(argv);
+	java.util.Properties props = new java.util.Properties();
+        props.put("org.omg.CORBA.ORBInitialPort", "2809");
+        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
+        m_orb = ORB.init(new String[0], props);
+        m_poa = manager.getPOA();
+        manager.getPOAManager().activate();
+        RTObject_impl_Mock rtobj = new RTObject_impl_Mock(manager);
+
+        m_pConf = rtobj.getConfiguration_impl();
+        m_sdoservice = new SdoServiceAdmin(rtobj);
+
     }
 
     protected void tearDown() throws Exception {
@@ -69,10 +107,9 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_set_device_profile_and_getDeviceProfile() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin,null);
         
         // DeviceProfileを準備する
         DeviceProfile devProf = new DeviceProfile();
@@ -108,7 +145,6 @@ public class SdoConfigurationTest extends TestCase {
         assertEquals("name 1", devProfRet.properties[1].name);
         float valuer2 = devProfRet.properties[1].value.extract_float();
         assertEquals(2.71828f, valuer2);
-*/
     }
     /**
      * <p>set_service_profile()メソッドとgetServiceProfile()メソッドのテスト
@@ -118,15 +154,17 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_set_service_profile_and_getServiceProfile() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = m_pConf;
         
         // ServiceProfileを準備する
         ServiceProfile svcProf = new ServiceProfile();
         svcProf.id = "ID";
-        svcProf.interface_type = "INTERFACE_TYPE";
+        svcProf.interface_type = "IDL:OpenRTM/ComponentObserver:1.0";
+        ComponentObserverMock sdoSvc1 = new ComponentObserverMock();
+        this.m_poa.activate_object(sdoSvc1);
+        svcProf.service = sdoSvc1._this();
         NameValue[] properties = new NameValue[2];
         properties[0] = new NameValue();
         properties[0].name = "name 0";
@@ -141,112 +179,8 @@ public class SdoConfigurationTest extends TestCase {
         svcProf.properties = properties;
         
         // ServiceProfileを設定する
-        assertTrue(sdoCfg.set_service_profile(svcProf));
+        assertTrue(sdoCfg.add_service_profile(svcProf));
         
-        // getServiceProfile()でServiceProfileを取得し、設定したものと一致しているか確認する
-        ServiceProfile svcProfRet = sdoCfg.getServiceProfile("ID");
-        assertEquals("ID", svcProfRet.id);
-        assertEquals("INTERFACE_TYPE", svcProfRet.interface_type);
-        assertEquals("name 0", svcProfRet.properties[0].name);
-        float valuer = svcProfRet.properties[0].value.extract_float();
-        assertEquals(3.14159f, valuer);
-        assertEquals("name 1", svcProfRet.properties[1].name);
-        float valuer2 = svcProfRet.properties[1].value.extract_float();
-        assertEquals(2.71828f, valuer2);
-*/
-    }
-    /**
-     * <p>set_service_profile()メソッドとgetServiceProfile()メソッドのテスト
-     * <ul>
-     * <li>登録されている複数のServiceProfileを、getServiceProfiles()で正しく取得できるか？</li>
-     * </ul>
-     * </p>
-     */
-    public void test_getServiceProfiles() throws Exception {
-/*
-        Properties cfgAdminProp = new Properties();
-        ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
-        
-        // ServiceProfileを準備する
-        ServiceProfile svcProf0 = new ServiceProfile();
-        svcProf0.id = "ID 0";
-        svcProf0.interface_type = "INTERFACE_TYPE 0";
-        NameValue[] properties = new NameValue[2];
-        properties[0] = new NameValue();
-        properties[0].name = "name 0-0";
-        Any value = ORBUtil.getOrb().create_any();
-        value.insert_float(3.14159f);
-        properties[0].value = value;
-        properties[1] = new NameValue();
-        properties[1].name = "name 0-1";
-        Any value2 = ORBUtil.getOrb().create_any();
-        value2.insert_float(2.71828f);
-        properties[1].value = value2;
-        svcProf0.properties = properties;
-    
-        ServiceProfile svcProf1 = new ServiceProfile();
-        svcProf1.id = "ID 1";
-        svcProf1.interface_type = "INTERFACE_TYPE 1";
-        NameValue[] properties2 = new NameValue[2];
-        properties2[0] = new NameValue();
-        properties2[0].name = "name 1-0";
-        Any value3 = ORBUtil.getOrb().create_any();
-        value3.insert_float(1.41421356f);
-        properties2[0].value = value3;
-        properties2[1] = new NameValue();
-        properties2[1].name = "name 1-1";
-        Any value4 = ORBUtil.getOrb().create_any();
-        value4.insert_float(1.7320508f);
-        properties2[1].value = value4;
-        svcProf1.properties = properties2;
-        
-        // ServiceProfileを設定する
-        assertTrue(sdoCfg.set_service_profile(svcProf0));
-        assertTrue(sdoCfg.set_service_profile(svcProf1));
-        
-        // getServiceProfiles()で設定されているServiceProfile群を取得する
-        ServiceProfileListHolder svcProfList = sdoCfg.getServiceProfiles();
-        assertEquals(2, svcProfList.value.length);
-        
-        // 設定したServiceProfileと一致しているか？
-        ServiceProfileFinder finder = new ServiceProfileFinder(svcProfList, "ID 0");
-        int idx = finder.find();
-            
-        assertEquals("ID 0", svcProfList.value[idx].id);
-        assertEquals("INTERFACE_TYPE 0", svcProfList.value[idx].interface_type);
-        assertEquals("name 0-0", svcProfList.value[idx].properties[0].name);
-        float valuer = svcProfList.value[idx].properties[0].value.extract_float();
-        assertEquals(3.14159f, valuer);
-        assertEquals("name 0-1", svcProfList.value[idx].properties[1].name);
-        float valuer2 = svcProfList.value[idx].properties[1].value.extract_float();
-        assertEquals(2.71828f, valuer2);
-        //
-        finder = new ServiceProfileFinder(svcProfList, "ID 1");
-        int idx2 = finder.find();
-        assertEquals("ID 1", svcProfList.value[idx2].id);
-        assertEquals("INTERFACE_TYPE 1", svcProfList.value[idx2].interface_type);
-        assertEquals("name 1-0", svcProfList.value[idx2].properties[0].name);
-        float valuer3 = svcProfList.value[idx2].properties[0].value.extract_float();
-        assertEquals(1.41421356f, valuer3);
-        assertEquals("name 1-1", svcProfList.value[idx2].properties[1].name);
-        float valuer4 = svcProfList.value[idx2].properties[1].value.extract_float();
-        assertEquals(1.7320508f, valuer4);
-*/
-    }
-    private class ServiceProfileFinder {
-        public ServiceProfileFinder(ServiceProfileListHolder target,String id) {
-            m_target = target;
-            m_ecSvc = id;
-        }
-        public int find() {
-            for( int i=0;i<m_target.value.length;i++) {
-                if( m_target.value[i].id.equals(m_ecSvc) ) return i;
-            }
-            return -1;
-        }
-        private String m_ecSvc;
-        private ServiceProfileListHolder m_target;
     }
     /**
      * <p>remove_service_profile()メソッドのテスト
@@ -256,15 +190,17 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_remove_service_profile() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = m_pConf;
         
         // ServiceProfileを準備する
         ServiceProfile svcProf0 = new ServiceProfile();
         svcProf0.id = "ID 0";
-        svcProf0.interface_type = "INTERFACE_TYPE 0";
+        svcProf0.interface_type = "IDL:OpenRTM/ComponentObserver:1.0";
+        ComponentObserverMock sdoSvc1 = new ComponentObserverMock();
+        this.m_poa.activate_object(sdoSvc1);
+        svcProf0.service = sdoSvc1._this();
         NameValue[] properties = new NameValue[2];
         properties[0] = new NameValue();
         properties[0].name = "name 0-0";
@@ -280,7 +216,10 @@ public class SdoConfigurationTest extends TestCase {
     
         ServiceProfile svcProf1 = new ServiceProfile();
         svcProf1.id = "ID 1";
-        svcProf1.interface_type = "INTERFACE_TYPE 1";
+        svcProf1.interface_type = "IDL:OpenRTM/ComponentObserver:1.0";
+        ComponentObserverMock sdoSvc2 = new ComponentObserverMock();
+        this.m_poa.activate_object(sdoSvc2);
+        svcProf1.service = sdoSvc2._this();
         NameValue[] properties2 = new NameValue[2];
         properties2[0] = new NameValue();
         properties2[0].name = "name 1-0";
@@ -295,24 +234,11 @@ public class SdoConfigurationTest extends TestCase {
         svcProf1.properties = properties2;
         
         // ServiceProfileを設定する
-        assertTrue(sdoCfg.set_service_profile(svcProf0));
-        assertTrue(sdoCfg.set_service_profile(svcProf1));
-        
+        assertTrue(sdoCfg.add_service_profile(svcProf0));
+        assertTrue(sdoCfg.add_service_profile(svcProf1));
         // 設定したServiceProfileのうち、片方を登録解除する
         assertTrue(sdoCfg.remove_service_profile("ID 0"));
         
-        // getServiceProfiles()で全ServiceProfileを取得し、登録解除したものが含まれないことを確認する
-        ServiceProfileListHolder svcProfList = sdoCfg.getServiceProfiles();
-        assertEquals(1, svcProfList.value.length);
-        ServiceProfileFinder finder = new ServiceProfileFinder(svcProfList, "ID 0");
-        int idx = finder.find();
-        assertEquals(-1, idx);
-        
-        // 登録解除していないものは、依然として含まれているか？
-         finder = new ServiceProfileFinder(svcProfList, "ID 1");
-        int idx2 = finder.find();
-        assertEquals(0, idx2);
-*/
     }
     /**
      * <p>add_organization()メソッドとgetOrganizations()メソッドのテスト
@@ -323,10 +249,9 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_add_organization_and_getOrganizations() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin,null);
         
         // Organizationを2つ登録する
         Organization org1 = new _OrganizationStub();
@@ -338,7 +263,6 @@ public class SdoConfigurationTest extends TestCase {
         // 取得されるOrganizationの数は、意図どおり2つか？
         OrganizationListHolder orgList = sdoCfg.getOrganizations();
         assertEquals(2, orgList.value.length);
-*/
     }
     /**
      * <p>add/get_configuration_set()メソッドのテスト
@@ -349,10 +273,9 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_add_configuration_set_and_get_configuration_set() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin,null);
         
         // ConfigurationSetを準備する
         ConfigurationSet cfgSet0 = new ConfigurationSet();
@@ -392,28 +315,45 @@ public class SdoConfigurationTest extends TestCase {
         // 登録したConfigurationSetを正しく取得できるか？
         ConfigurationSet cfgSetRet0 = sdoCfg.get_configuration_set("ID 0");
         assertEquals("ID 0", cfgSetRet0.id);
-        assertEquals("DESCRIPTION 0", cfgSetRet0.description);
         assertEquals(2, cfgSetRet0.configuration_data.length);
         assertEquals("NAME 0-0", cfgSetRet0.configuration_data[0].name);
-        String valuer = cfgSetRet0.configuration_data[0].value.extract_wstring();
+        String valuer;
+        if( cfgSetRet0.configuration_data[0].value.type().kind() == TCKind.tk_wstring ) {
+            valuer = cfgSetRet0.configuration_data[0].value.extract_wstring();
+        } else {
+            valuer = cfgSetRet0.configuration_data[0].value.extract_string();
+        }
         assertEquals("3.14159", valuer);
         
         assertEquals("NAME 0-1", cfgSetRet0.configuration_data[1].name);
-        String valuer2 = cfgSetRet0.configuration_data[1].value.extract_wstring();
+        String valuer2;
+        if( cfgSetRet0.configuration_data[1].value.type().kind() == TCKind.tk_wstring ) {
+            valuer2 = cfgSetRet0.configuration_data[1].value.extract_wstring();
+        } else {
+            valuer2 = cfgSetRet0.configuration_data[1].value.extract_string();
+        }
         assertEquals("2.71828",valuer2);
 
         ConfigurationSet cfgSetRet1 = sdoCfg.get_configuration_set("ID 1");
         assertEquals("ID 1", cfgSetRet1.id);
-        assertEquals("DESCRIPTION 1", cfgSetRet1.description);
         assertEquals(2, cfgSetRet1.configuration_data.length);
         assertEquals("NAME 1-0", cfgSetRet1.configuration_data[0].name);
-        String valuer3 = cfgSetRet1.configuration_data[0].value.extract_wstring();
+        String valuer3;
+        if( cfgSetRet1.configuration_data[0].value.type().kind() == TCKind.tk_wstring ) {
+            valuer3 = cfgSetRet1.configuration_data[0].value.extract_wstring();
+        } else {
+            valuer3 = cfgSetRet1.configuration_data[0].value.extract_string();
+        }
         assertEquals("1.41421356", valuer3);
         //
         assertEquals("NAME 1-1", cfgSetRet1.configuration_data[1].name);
-        String valuer4 = cfgSetRet1.configuration_data[1].value.extract_wstring();
+        String valuer4;
+        if( cfgSetRet1.configuration_data[1].value.type().kind() == TCKind.tk_wstring ) {
+            valuer4 = cfgSetRet1.configuration_data[1].value.extract_wstring();
+        } else {
+            valuer4 = cfgSetRet1.configuration_data[1].value.extract_string();
+        }
         assertEquals("1.7320508", valuer4);
-*/
     }
     /**
      * <p>remove_configuration_set()メソッドのテスト
@@ -424,10 +364,9 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_remove_configuration_set() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin,null);
         
         // ConfigurationSetを準備する
         ConfigurationSet cfgSet0 = new ConfigurationSet();
@@ -483,7 +422,6 @@ public class SdoConfigurationTest extends TestCase {
             sdoCfg.remove_configuration_set("inexist ID");
             fail("Exception not thrown.");
         } catch (InternalError expected) {}
-*/
     }
     /**
      * <p>set_configuration_set_values()メソッドのテスト
@@ -494,10 +432,9 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_set_configuration_set_values2() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin,null);
         
         // ConfigurationSetを準備する
         ConfigurationSet cfgSet0 = new ConfigurationSet();
@@ -550,19 +487,44 @@ public class SdoConfigurationTest extends TestCase {
         assertTrue(sdoCfg.add_configuration_set(cfgSet1));
         
         // 登録したConfigurationSetのうち片方を、set_configuration_set_values()で更新する
-        assertTrue(sdoCfg.set_configuration_set_values("ID 1", cfgSet1_Modified));
+        assertTrue(sdoCfg.set_configuration_set_values(cfgSet1_Modified));
         
         // 更新したConfigurationSetを、正しく取得できるか？
         ConfigurationSet cfgSetRet = sdoCfg.get_configuration_set("ID 1");
         assertEquals("ID 1", cfgSetRet.id);
-        assertEquals("DESCRIPTION 1 M", cfgSetRet.description);
-        assertEquals(2, cfgSetRet.configuration_data.length);
-        assertEquals("NAME 1-0 M", cfgSetRet.configuration_data[0].name);
-        String valuer = cfgSetRet.configuration_data[0].value.extract_wstring();
-        assertEquals("2.23620679", valuer);
-        assertEquals("NAME 1-1 M", cfgSetRet.configuration_data[1].name);
-        String valuer2 = cfgSetRet.configuration_data[1].value.extract_wstring();
-        assertEquals("2.44948974", valuer2);
+        assertEquals(4, cfgSetRet.configuration_data.length);
+        assertEquals("NAME 1-0", cfgSetRet.configuration_data[0].name);
+        String valuer;
+        if( cfgSetRet.configuration_data[0].value.type().kind() == TCKind.tk_wstring ) {
+            valuer = cfgSetRet.configuration_data[0].value.extract_wstring();
+        } else {
+            valuer = cfgSetRet.configuration_data[0].value.extract_string();
+        }
+        assertEquals("1.41421356", valuer);
+        assertEquals("NAME 1-1", cfgSetRet.configuration_data[1].name);
+        String valuer2;
+        if( cfgSetRet.configuration_data[1].value.type().kind() == TCKind.tk_wstring ) {
+            valuer2 = cfgSetRet.configuration_data[1].value.extract_wstring();
+        } else {
+            valuer2 = cfgSetRet.configuration_data[1].value.extract_string();
+        }
+        assertEquals("1.7320508", valuer2);
+        assertEquals("NAME 1-0 M", cfgSetRet.configuration_data[2].name);
+        String valuer3;
+        if( cfgSetRet.configuration_data[2].value.type().kind() == TCKind.tk_wstring ) {
+            valuer3 = cfgSetRet.configuration_data[2].value.extract_wstring();
+        } else {
+            valuer3 = cfgSetRet.configuration_data[2].value.extract_string();
+        }
+        assertEquals("2.23620679", valuer3);
+        assertEquals("NAME 1-1 M", cfgSetRet.configuration_data[3].name);
+        String valuer4;
+        if( cfgSetRet.configuration_data[3].value.type().kind() == TCKind.tk_wstring ) {
+            valuer4 = cfgSetRet.configuration_data[3].value.extract_wstring();
+        } else {
+            valuer4 = cfgSetRet.configuration_data[3].value.extract_string();
+        }
+        assertEquals("2.44948974", valuer4);
         
         // 存在しないIDを指定してset_configuration_set_values()を呼出し、
         // 意図どおり例外がスローされるか？
@@ -570,7 +532,6 @@ public class SdoConfigurationTest extends TestCase {
             sdoCfg.get_configuration_set("inexist ID");
             fail("Exception not thrown.");
         } catch (InternalError expected) {}
-*/
     }
     /**
      * <p>activate_configuration_set()メソッドのテスト
@@ -580,10 +541,9 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_activate_configuration_set_and_get_active_configuration_set() throws Exception {
-/*
         Properties cfgAdminProp = new Properties();
         ConfigAdmin cfgAdmin = new ConfigAdmin(cfgAdminProp);
-        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin);
+        Configuration_impl sdoCfg = new Configuration_impl(cfgAdmin,null);
         
         // ConfigurationSetを準備する
         ConfigurationSet cfgSet0 = new ConfigurationSet();
@@ -626,13 +586,22 @@ public class SdoConfigurationTest extends TestCase {
         // アクティブなConfigurationSetを取得し、それがアクティブ化したものと一致するか？
         ConfigurationSet cfgSetRet0 = sdoCfg.get_configuration_set("ID 0");
         assertEquals("ID 0", cfgSetRet0.id);
-        assertEquals("DESCRIPTION 0", cfgSetRet0.description);
         assertEquals(2, cfgSetRet0.configuration_data.length);
         assertEquals("NAME 0-0", cfgSetRet0.configuration_data[0].name);
-        String valuer = cfgSetRet0.configuration_data[0].value.extract_wstring();
+        String valuer;
+        if( cfgSetRet0.configuration_data[0].value.type().kind() == TCKind.tk_wstring ) {
+            valuer = cfgSetRet0.configuration_data[0].value.extract_wstring();
+        } else {
+            valuer = cfgSetRet0.configuration_data[0].value.extract_string();
+        }
         assertEquals("3.14159", valuer);
         assertEquals("NAME 0-1", cfgSetRet0.configuration_data[1].name);
-        String valuer2 = cfgSetRet0.configuration_data[1].value.extract_wstring();
+        String valuer2;
+        if( cfgSetRet0.configuration_data[1].value.type().kind() == TCKind.tk_wstring ) {
+            valuer2 = cfgSetRet0.configuration_data[1].value.extract_wstring();
+        } else {
+            valuer2 = cfgSetRet0.configuration_data[1].value.extract_string();
+        }
         assertEquals("2.71828", valuer2);
 
         // "ID 0"のほうをアクティブ化する
@@ -641,13 +610,22 @@ public class SdoConfigurationTest extends TestCase {
         // アクティブなConfigurationSetを取得し、それがアクティブ化したものと一致するか？
         ConfigurationSet cfgSetRet1 = sdoCfg.get_configuration_set("ID 1");
         assertEquals("ID 1", cfgSetRet1.id);
-        assertEquals("DESCRIPTION 1", cfgSetRet1.description);
         assertEquals(2, cfgSetRet1.configuration_data.length);
         assertEquals("NAME 1-0", cfgSetRet1.configuration_data[0].name);
-        String valuer3 = cfgSetRet1.configuration_data[0].value.extract_wstring();
+        String valuer3;
+        if( cfgSetRet0.configuration_data[0].value.type().kind() == TCKind.tk_wstring ) {
+            valuer3 = cfgSetRet1.configuration_data[0].value.extract_wstring();
+        } else {
+            valuer3 = cfgSetRet1.configuration_data[0].value.extract_string();
+        }
         assertEquals("1.41421356", valuer3);
         assertEquals("NAME 1-1", cfgSetRet1.configuration_data[1].name);
-        String valuer4 = cfgSetRet1.configuration_data[1].value.extract_wstring();
+        String valuer4;
+        if( cfgSetRet0.configuration_data[1].value.type().kind() == TCKind.tk_wstring ) {
+            valuer4 = cfgSetRet1.configuration_data[1].value.extract_wstring();
+        } else {
+            valuer4 = cfgSetRet1.configuration_data[1].value.extract_string();
+        }
         assertEquals("1.7320508", valuer4);
         
         // 存在しないIDを指定してactivate_configuration_set()を呼出し、意図どおりの例外がスローされるか？
@@ -655,7 +633,6 @@ public class SdoConfigurationTest extends TestCase {
             sdoCfg.activate_configuration_set("inexist ID");
             fail("Exception not thrown.");
         } catch (InvalidParameter expected) {}
-*/
     }
 
     
@@ -669,13 +646,12 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_set_device_profile() {
-/*
         short st, retst;
         int  lg, retlg;
         float ft, retft;
         NVListHolder nlist = new NVListHolder();
       
-      // DeviceProfile.properties要素のセット
+       // DeviceProfile.properties要素のセット
         nlist.value = new NameValue[3];
         st = 10;
         nlist.value[0] = new NameValue();
@@ -754,7 +730,6 @@ public class SdoConfigurationTest extends TestCase {
         assertEquals("float data", retval);
         retft = retProf.properties[2].value.extract_float();
         assertEquals(1234.5F, ft);
-*/
     }
 
     /**
@@ -765,12 +740,11 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_set_null_service_profile() {
-/*
         boolean result;
         ServiceProfile sPro = new ServiceProfile();
         // ServiceProfileのセット
         try {
-            result = m_pConf.set_service_profile(sPro);
+            result = m_pConf.add_service_profile(sPro);
         } catch (InvalidParameter e1) {
             e1.printStackTrace();
             fail();
@@ -781,14 +755,8 @@ public class SdoConfigurationTest extends TestCase {
             e1.printStackTrace();
             fail();
         }
-        ServiceProfileListHolder spList;
-        spList = m_pConf.getServiceProfiles();
-        
-        assertEquals(1, spList.value.length);
     
-*/
     }
-    
     /**
      * <p>SDO　サービスプロファイルの設定/取得チェック
      * <ul>
@@ -801,7 +769,6 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_set_service_profile() {
-/*
         ServiceProfile getProf;
         ServiceProfile svcProf0 = new ServiceProfile();
         ServiceProfile svcProf1 = new ServiceProfile();;
@@ -828,7 +795,7 @@ public class SdoConfigurationTest extends TestCase {
       
         // ServiceProfileのセット
         try {
-            result = m_pConf.set_service_profile(svcProf0);
+            result = m_pConf.add_service_profile(svcProf0);
         } catch (InvalidParameter e1) {
             e1.printStackTrace();
             fail();
@@ -839,7 +806,6 @@ public class SdoConfigurationTest extends TestCase {
             e1.printStackTrace();
             fail();
         }
-      
         // ServiceProfile.properties要素のセット
         setlg = 1000;
         NameValue nv2 = new NameValue();
@@ -857,7 +823,7 @@ public class SdoConfigurationTest extends TestCase {
         
         // ServiceProfileのセット
         try {
-            m_pConf.set_service_profile(svcProf1);
+            m_pConf.add_service_profile(svcProf1);
         } catch (InvalidParameter e1) {
             e1.printStackTrace();
             fail();
@@ -869,62 +835,7 @@ public class SdoConfigurationTest extends TestCase {
             fail();
         }
       
-      //====== ServiceProfileの取得とデータの比較 =========================
-        getProf = m_pConf.getServiceProfile(svcProf0.id);
-      
-        getstr = getProf.id;
-        assertEquals("setProfId0", getstr);
-      
-        getstr = getProf.interface_type;
-        assertEquals("ifTYpe0", getstr);
-      
-        getstr = getProf.properties[0].name;
-        assertEquals("short", getstr);
-      
-        getst = getProf.properties[0].value.extract_short();
-        assertEquals(10, getst);
-      //===================================================================
-      
-      //======= ServiceProfileの取得 ======================================
-        getProf = m_pConf.getServiceProfile(svcProf1.id);
-        getstr = getProf.id;
-        assertEquals("setProfId1", getstr);
-        getstr = getProf.interface_type;
-        assertEquals("ifTYpe1", getstr);
-        getstr = getProf.properties[0].name;
-        assertEquals("long", getstr);
-        getlg = getProf.properties[0].value.extract_long();
-        assertEquals(1000, getlg);
-      //===================================================================
-      
-        //======= 存在しないServiceProfileの取得 ======================================
-        getProf = m_pConf.getServiceProfile("dummy");
-        assertNull(getProf.id);
-        assertNull(getProf.interface_type);
-        assertNull(getProf.properties);
-      //===================================================================
 
-      //============  ServiceProfileListの取得とデータ比較 ====================
-        ServiceProfileListHolder spList;
-        spList = m_pConf.getServiceProfiles();
-
-        getstr = spList.value[0].id;
-        assertEquals("setProfId0", getstr);
-        getstr = spList.value[0].interface_type;
-        assertEquals("ifTYpe0", getstr);
-        getstr = spList.value[0].properties[0].name;
-        assertEquals("short", getstr);
-        getst = spList.value[0].properties[0].value.extract_short();
-        assertEquals(10, getst);
-
-        getstr = spList.value[1].id;
-        assertEquals("setProfId1", getstr);
-        getstr = spList.value[1].interface_type;
-        assertEquals("ifTYpe1", getstr);
-        getstr = spList.value[1].properties[0].name;
-        assertEquals("long", getstr);
-        getlg = spList.value[1].properties[0].value.extract_long();
-        assertEquals(1000, getlg);
       //================================================================
       
       // ServiceProfileListから引数で与えたidを持つ
@@ -941,15 +852,6 @@ public class SdoConfigurationTest extends TestCase {
             e.printStackTrace();
             fail();
         }
-
-        spList = m_pConf.getServiceProfiles();
-        getstr = spList.value[0].id;
-        assertEquals("setProfId1", getstr);
-        getstr = spList.value[0].interface_type;
-        assertEquals("ifTYpe1", getstr);
-        getstr = spList.value[0].properties[0].name;
-        assertEquals("long", getstr);
-      
         try {
             m_pConf.remove_service_profile(svcProf0.id);
         } catch (InvalidParameter e) {
@@ -964,7 +866,6 @@ public class SdoConfigurationTest extends TestCase {
         }
 
       //==================================================================
-*/
     }
 
     /**
@@ -975,7 +876,6 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_parameters() {
-/*
       ParameterListHolder paramList = new ParameterListHolder();
       
       // length 0のリストが戻される。 OK.
@@ -990,7 +890,6 @@ public class SdoConfigurationTest extends TestCase {
     }
       int length = paramList.value.length;
       assertEquals(0, length);
-*/
     }
 
     /**
@@ -1007,7 +906,6 @@ public class SdoConfigurationTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_sets() {
-/*
       ConfigurationSet confset = new ConfigurationSet();
       ConfigurationSet getconfset = new ConfigurationSet();
       NVListHolder nvlist = new NVListHolder();
@@ -1030,7 +928,6 @@ public class SdoConfigurationTest extends TestCase {
       ShortHolder sth = new ShortHolder(st);
       Any anyValue = m_orb.create_any();
       anyValue.insert_Value(sth);
-//      anyValue.insert_short(st);
       nv.value = anyValue;
       nvlist.value[0] = new NameValue();
       nvlist.value[0] = nv;
@@ -1046,26 +943,6 @@ public class SdoConfigurationTest extends TestCase {
       // Activate ConfigurationSet1.
       result = m_pConf.activate_configuration_set(confset.id);
       
-      //=== set_configuration_parameter()のテスト ===================
-      st = 9;
-      ShortHolder sth2 = new ShortHolder(st);
-      any = m_orb.create_any();
-//      any.insert_Value(sth2);
-      any.insert_short(st);
-      String name = "short";
-      result = m_pConf.set_configuration_parameter(name, any);
-      //==============================================================
-      
-      //==== get_configuration_parameter_values()のテスト =====
-//      NVListHolder getList = new NVListHolder();
-//      
-//      setname = "short";
-//      getList.value = m_pConf.get_configuration_parameter_values();
-//      getname = getList.value[0].name;
-//      assertEquals(getname, setname);
-//      rst = getList.value[0].value.extract_short();
-//      assertEquals(rst, st);
-      //=======================================================
       
       //============ ConfigurationSet2 =================================
       // ConfigurationSet要素のセット
@@ -1080,7 +957,6 @@ public class SdoConfigurationTest extends TestCase {
       IntegerHolder lgh = new IntegerHolder(lg);
       anyValue = m_orb.create_any();
       anyValue.insert_Value(lgh);
-//      anyValue.insert_long(lg);
       nv2.value = anyValue;
       nvlist2.value[0] = nv2;
       confset2.configuration_data = nvlist2.value;
@@ -1093,7 +969,6 @@ public class SdoConfigurationTest extends TestCase {
       result = m_pConf.activate_configuration_set(confset2.id);
       
       //================= get_configuration_sets()のテスト ==============
-//      ConfigurationSetListHolder confSetList = new ConfigurationSetListHolder();
       ConfigurationSetListHolder confSetList = new ConfigurationSetListHolder(new ConfigurationSet[0]);
       confSetList.value = m_pConf.get_configuration_sets();
       llength = confSetList.value.length;
@@ -1101,18 +976,22 @@ public class SdoConfigurationTest extends TestCase {
       
       getname = confSetList.value[0].id;
       assertEquals("configset_id1", getname);
-//      rst = confSetList.value[0].configuration_data[0].value.extract_Value();
       Any getAny = confSetList.value[0].configuration_data[0].value;
-      rst = Short.valueOf(getAny.extract_wstring());
-//      rst = ((ShortHolder)confSetList.value[0].configuration_data[0].value.extract_Value()).getValue();
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rst = Short.valueOf(getAny.extract_wstring());
+      } else {
+          rst = Short.valueOf(getAny.extract_string());
+      }
       assertEquals(10000, rst);
       
       getname = confSetList.value[1].id;
       assertEquals("configset_id2", getname);
-//      rlg = confSetList.value[1].configuration_data[0].value.extract_long();
-//      rlg = ((IntegerHolder)confSetList.value[1].configuration_data[0].value.extract_Value()).getValue();
       getAny = confSetList.value[1].configuration_data[0].value;
-      rlg = Integer.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rlg = Integer.valueOf(getAny.extract_wstring());
+      } else {
+          rlg = Integer.valueOf(getAny.extract_string());
+      }
       assertEquals(20000, rlg);
       //=================================================================
       
@@ -1122,18 +1001,24 @@ public class SdoConfigurationTest extends TestCase {
       
       getname = confSet3.id;
       assertEquals("configset_id1", getname);
-//      rst = ((ShortHolder)confSet3.configuration_data[0].value.extract_Value()).getValue();
       getAny = confSet3.configuration_data[0].value;
-      rst = Short.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rst = Short.valueOf(getAny.extract_wstring());
+      } else {
+          rst = Short.valueOf(getAny.extract_string());
+      }
       assertEquals(10000, rst);
       
       confSet3 = m_pConf.get_configuration_set("configset_id2");
       
       getname = confSet3.id;
       assertEquals("configset_id2", getname);
-//      rlg = ((IntegerHolder)confSet3.configuration_data[0].value.extract_Value()).getValue();
       getAny = confSet3.configuration_data[0].value;
-      rlg = Integer.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rlg = Integer.valueOf(getAny.extract_wstring());
+      } else {
+          rlg = Integer.valueOf(getAny.extract_string());
+      }
       assertEquals(20000, rlg);
       //==================================================================
       
@@ -1148,22 +1033,23 @@ public class SdoConfigurationTest extends TestCase {
       ft = 999.999F;
       FloatHolder fth = new FloatHolder(ft);
       anyValue = m_orb.create_any();
-//      anyValue.insert_float(ft);
       anyValue.insert_Value(fth);
       nv3.value = anyValue;
       nvlist3.value[0] = nv3;
       confSet4.configuration_data = nvlist3.value;
-      result = m_pConf.set_configuration_set_values("configset_id2", confSet4);
+      result = m_pConf.set_configuration_set_values(confSet4);
       
       // ConfigurationSetが正しくセットされているかを確認するため
       // get_configuration_set()を使用。
       getconfset = m_pConf.get_configuration_set("configset_id2");
       getname = getconfset.id;
       assertEquals("configset_id2", getname);
-//      rft = getconfset.configuration_data[0].value.extract_float();
-//      rft = ((FloatHolder)getconfset.configuration_data[0].value.extract_Value()).getValue();
       getAny = getconfset.configuration_data[1].value;
-      rft = Float.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rft = Float.valueOf(getAny.extract_wstring());
+      } else {
+          rft = Float.valueOf(getAny.extract_string());
+      }
       assertEquals(999.999F, rft);
       
       // ConfigurationSetが正しくセットされているかを確認するため
@@ -1174,16 +1060,22 @@ public class SdoConfigurationTest extends TestCase {
       
       getname = confSetList.value[0].id;
       assertEquals("configset_id1", getname);
-//      rst = ((ShortHolder)confSetList.value[0].configuration_data[0].value.extract_Value()).getValue();
       getAny = confSetList.value[0].configuration_data[0].value;
-      rst = Short.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rst = Short.valueOf(getAny.extract_wstring());
+      } else {
+          rst = Short.valueOf(getAny.extract_string());
+      }
       assertEquals(10000, rst);
       
       getname = confSetList.value[1].id;
       assertEquals("configset_id2", getname);
-//      rft = ((FloatHolder)confSetList.value[1].configuration_data[0].value.extract_Value()).getValue();
       getAny = confSetList.value[1].configuration_data[0].value;
-      rft = Float.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rft = Float.valueOf(getAny.extract_wstring());
+      } else {
+          rft = Float.valueOf(getAny.extract_string());
+      }
       assertEquals(20000.0F, rft);
       //===================================================================
       
@@ -1193,10 +1085,10 @@ public class SdoConfigurationTest extends TestCase {
       assertEquals("configset_id2", getname);
       
       String getdesc = getconfset.description;
-//      assertEquals("changed configset_description.", getdesc);
       //===================================================================
       
       //=========== remove_configuration_set()のテスト ===================
+      result = m_pConf.activate_configuration_set("configset_id1");
       result = m_pConf.remove_configuration_set("configset_id2");
       // "configset_id2"を要素に持つConfigurationSetが削除されているか
       // を確認するため get_configuration_sets()を使用。
@@ -1208,10 +1100,12 @@ public class SdoConfigurationTest extends TestCase {
       
       getname = getconfset.id;
       assertEquals("configset_id1", getname);
-//      rst = getconfset.configuration_data[0].value.extract_short();
-//      rst = ((ShortHolder)getconfset.configuration_data[0].value.extract_Value()).getValue();
       getAny = confSetList.value[0].configuration_data[0].value;
-      rst = Short.valueOf(getAny.extract_wstring());
+      if( getAny.type().kind() == TCKind.tk_wstring ) {
+          rft = Float.valueOf(getAny.extract_wstring());
+      } else {
+          rst = Short.valueOf(getAny.extract_string());
+      }
       assertEquals(10000, rst);
       //===================================================================
       } catch (InvalidParameter e) {
@@ -1224,11 +1118,9 @@ public class SdoConfigurationTest extends TestCase {
           e.printStackTrace();
           fail();
       }
-*/
     }
 
     public void test_set_configuration_set_values() {
-/*
         ConfigurationSet confset = new ConfigurationSet();
         ConfigurationSet getconfset = new ConfigurationSet();
         NVListHolder nvlist = new NVListHolder();
@@ -1247,7 +1139,6 @@ public class SdoConfigurationTest extends TestCase {
         ShortHolder sth = new ShortHolder(st);
         Any anyValue = m_orb.create_any();
         anyValue.insert_Value(sth);
-//        anyValue.insert_short(st);
         nv.value = anyValue;
         nvlist.value[0] = new NameValue();
         nvlist.value[0] = nv;
@@ -1302,11 +1193,11 @@ public class SdoConfigurationTest extends TestCase {
         //================================================================
         
         try {
-            result = m_pConf.set_configuration_set_values("configset_id1", confset2);
+            result = m_pConf.set_configuration_set_values(confset2);
             assertTrue(result);
             assertEquals( 1, m_pConf.get_configuration_sets().length );
             getconfset = m_pConf.get_configuration_set("configset_id1");
-            assertEquals(1, getconfset.configuration_data.length);
+            assertEquals(2, getconfset.configuration_data.length);
         } catch (InvalidParameter e) {
             e.printStackTrace();
             fail();
@@ -1317,6 +1208,5 @@ public class SdoConfigurationTest extends TestCase {
             e.printStackTrace();
             fail();
         }
-*/
     }
 }

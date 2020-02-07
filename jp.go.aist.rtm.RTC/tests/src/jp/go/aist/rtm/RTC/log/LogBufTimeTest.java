@@ -24,7 +24,9 @@ public class LogBufTimeTest extends TestCase {
 
         rtcout.setEnabled();
         rtcout.setClockType("adjusted");
-        rtcout.addStream(new ConsoleHandler());
+        ConsoleHandler handler = new ConsoleHandler();
+        rtcout.addStream(handler);
+        //rtcout.addStream(new ConsoleHandler());
         rtcout.setEnabled();
         // Junit出力ファイル*.xmlの <system-err>の欄に出力される
         System.err.println("--- test_case0() adjusted ---");
@@ -56,5 +58,6 @@ public class LogBufTimeTest extends TestCase {
         rtcout.println(Logbuf.SILENT, "SILENT string to STDOUT 2");
         // PARANOIDはマイクロ秒の出力なし
         // VERBOSE以降はマイクロ秒の出力があればOK
+        rtcout.removeStream(handler);
     }
 }

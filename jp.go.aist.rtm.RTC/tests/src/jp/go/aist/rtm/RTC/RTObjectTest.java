@@ -12,11 +12,13 @@ import jp.go.aist.rtm.RTC.util.NVUtil;
 import jp.go.aist.rtm.RTC.util.ORBUtil;
 import jp.go.aist.rtm.RTC.util.Properties;
 import jp.go.aist.rtm.RTC.util.equalFunctor;
+import jp.go.aist.rtm.RTC.util.POAUtil;
 import junit.framework.TestCase;
 
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
+import org.omg.PortableServer.Servant;
 
 import RTC.ComponentProfile;
 import RTC.ConnectorProfile;
@@ -24,10 +26,14 @@ import RTC.ConnectorProfileHolder;
 import RTC.ExecutionContext;
 import RTC.ExecutionContextListHolder;
 import RTC.ExecutionContextService;
+import RTC.ExecutionContextServiceHelper;
 import RTC.LifeCycleState;
+import RTC.PortService;
+import RTC.PortServiceListHolder;
 //import RTC.Port;
 //import RTC.PortListHolder;
 import RTC.ReturnCode_t;
+import RTC._PortServiceStub;
 //import RTC._PortStub;
 import _SDOPackage.Configuration;
 import _SDOPackage.DependencyType;
@@ -47,18 +53,30 @@ import _SDOPackage.SDOSystemElement;
 import _SDOPackage.SDOSystemElementPOA;
 import _SDOPackage.ServiceProfile;
 import _SDOPackage.ServiceProfileListHolder;
+import OpenRTM.DataFlowComponent;
+import OpenRTM.DataFlowComponentHelper;
 
 /**
 * RTObject　テスト
 * 対象クラス：RTObject_impl
 */
 public class RTObjectTest extends TestCase {
-
     class RTObjectMock extends RTObject_impl {
-        public RTObjectMock(ORB orb, POA poa) {
-            super(orb, poa);
+        public RTObjectMock(Manager manager) {
+            super(manager);
+            m_ref = this._this();
+            m_objref = m_ref;
         }
-    
+        public DataFlowComponent _this() {
+            if (this.m_ref == null) {
+                try {
+                    this.m_ref = DataFlowComponentHelper.narrow(POAUtil.getRef(this));
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            return this.m_ref;
+        }
         public ReturnCode_t on_initialize() {
             log("on_initialize");
             return super.on_initialize();
@@ -92,6 +110,9 @@ public class RTObjectTest extends TestCase {
         }
     
         private Vector<String> m_log = new Vector<String>();
+        public void init(){
+        }
+        private DataFlowComponent m_ref;
     };
 
     class PortMock extends PortBase {
@@ -110,7 +131,28 @@ public class RTObjectTest extends TestCase {
         }
     };
 
-    class SDOServiceMock extends SDOServicePOA {
+    class SDOServiceMock extends SDOServicePOA implements SdoServiceProviderBase{
+        public boolean init(RTObject_impl rtobj,
+                      final _SDOPackage.ServiceProfile profile){
+            m_profile = profile;
+            return true;
+        }
+        public boolean reinit(final _SDOPackage.ServiceProfile profile){
+            m_profile = profile;
+            return true;
+        }
+
+        public _SDOPackage.ServiceProfile getProfile(){
+            return m_profile;
+        }
+
+        public void finalize(){
+        }
+
+        public _SDOPackage.SDOService getSDOService(){
+            return (_SDOPackage.SDOService)null;
+        }
+        ServiceProfile m_profile = new ServiceProfile();
     };
 
     class SDOSystemElementMock extends SDOSystemElementPOA {
@@ -176,30 +218,67 @@ public class RTObjectTest extends TestCase {
 
     private ORB m_pORB;
     private POA m_pPOA;
+    private Manager manager;
 
     protected void setUp() throws Exception {
         super.setUp();
-/*
-        // (1-1) ORBの初期化
-        java.util.Properties props = new java.util.Properties();
-        props.put("org.omg.CORBA.ORBInitialPort", "2809");
-        props.put("org.omg.CORBA.ORBInitialHost", "localhost");
-        this.m_pORB = ORB.init(new String[0], props);
 
+        String args[] = {
+            "-o","corba.nameservers:localhost",
+            "-o","naming.formats:%n.rtc",
+            "-o","corba.id:omniORB",
+            "-o","corba.endpoint:",
+            "-o","corba.args:-ORBInitialHost localhost -ORBInitialPort 2809",
+            "-o","naming.enable:Yes",
+            "-o","logger.file_name:logging",
+            "-o","timer.enable:yes",
+            "-o","timer.tick:1000",
+            "-o","logger.enable:no",
+            "-o","manager.name:test",
+            "-o","manager.shutdown_on_nortcs:no",
+            "-o","exec_cxt.periodic.rate:10",
+            "-o","exec_cxt.periodic.type:jp.go.aist.rtm.RTC.executionContext.PeriodicExecutionContext",
+        };
+        manager = Manager.init(args);
+        manager.activateManager();
+        // (1-1) ORBの初期化
+        this.m_pORB = manager.getORB();
         // (1-2) POAManagerのactivate
-        this.m_pPOA = org.omg.PortableServer.POAHelper.narrow(
-                this.m_pORB.resolve_initial_references("RootPOA"));
+        this.m_pPOA = manager.getPOA();
         this.m_pPOA.the_POAManager().activate();
-*/
+
     }
 
     protected void tearDown() throws Exception {
         super.tearDown();
-/*
-        this.m_pORB.destroy();
-*/
+
+        manager.shutdownComponents();
+        manager.shutdownNaming();
+        manager = null;
+
+    }
+    public RTObject_impl createRtc(Manager mgr) {
+        return new RTObjectMock(mgr);
     }
 
+    public void deleteRtc(RTObject_impl rtcBase) {
+        rtcBase = null;
+    }
+    String[] strs = {
+            "exec_cxt.periodic.type","jp.go.aist.rtm.RTC.executionContext.PeriodicExecutionContext",
+            "exec_cxt.periodic.rate","10",
+            "implementation_id", "RTObjectMock",
+            "type_name",         "RTObjectMock",
+            "description",       "RTObjectMock component",
+            "version",           "1.0",
+            "vendor",            "Noriaki Ando, AIST",
+            "category",          "example",
+            "activity_type",     "DataFlowComponent",
+            "max_instance",      "10",
+            "language",          "Java",
+            "lang_type",         "compile",
+            ""
+    };
     /**
      * <p>initialize()メソッドのテスト
      * <ul>
@@ -208,14 +287,16 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_initialize_invoking_on_initialize() {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // initialize()メソッド呼出により、on_initialize()コールバックが呼び出されるか？
         assertEquals(0, rto.countLog("on_initialize"));
-        assertEquals(ReturnCode_t.RTC_OK, rto.initialize());
+        assertEquals(ReturnCode_t.RTC_OK.value(), rto.initialize().value());
         assertEquals(1, rto.countLog("on_initialize"));
-*/
+
     }
     /**
      * <p>initialize()メソッドのテスト
@@ -225,16 +306,16 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_initialize_in_Alive() {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // initialize()メソッド呼出しを行い、Alive状態に遷移させる
         assertEquals(ReturnCode_t.RTC_OK, rto.initialize());
-        assertTrue(rto.is_alive());
+        assertTrue(rto.is_alive(rto.get_owned_contexts()[0]));
         
         // Alive状態でinitialize()メソッド呼出しを行った場合、意図どおりのエラーを返すか？
         assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, rto.initialize());
-*/
     }
     /**
      * <p>finalize()メソッドのテスト
@@ -244,21 +325,19 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_finalize_invoking_on_finalize() {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // initialize()メソッド呼出しを行い、Alive状態に遷移させる
         assertEquals(ReturnCode_t.RTC_OK, rto.initialize());
-        assertTrue(rto.is_alive());
+        assertTrue(rto.is_alive(rto.get_owned_contexts()[0]));
         
         // finalize()呼出しにより、on_finalize()コールバックが呼び出されるか？
         assertEquals(0, rto.countLog("on_finalize"));
-        assertEquals(ReturnCode_t.RTC_OK, rto._finalize());
+        assertEquals(ReturnCode_t.RTC_OK.value(), rto.exit().value());
         assertEquals(1, rto.countLog("on_finalize"));
         
-        // finalize()完了後なので、終状態へ遷移している（つまりAlive状態ではない）か？
-        assertFalse(rto.is_alive());
-*/
     }
     /**
      * <p>finalize()メソッドのテスト
@@ -268,26 +347,46 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_finalize_participating_in_execution_context() throws Exception{
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // ExecutionContextを生成する
         PeriodicExecutionContext ec = new PeriodicExecutionContext(); // will be deleted automatically
-        CorbaObjectManager objManager = new CorbaObjectManager(m_pORB, m_pPOA);
-        objManager.activate(ec);
-
+        byte[] id = null;
+        try {
+            id = m_pPOA.activate_object(ec);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            id = m_pPOA.servant_to_id(ec);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
         // initialize()メソッド呼出しを行い、Alive状態に遷移させる
         assertEquals(ReturnCode_t.RTC_OK, rto.initialize());
-        assertTrue(rto.is_alive());
+        assertTrue(rto.is_alive(rto.get_owned_contexts()[0]));
         
         // ExecutionContextに登録しておく
-        this.m_pPOA.activate_object(rto);
-        assertEquals(ReturnCode_t.RTC_OK, ec.add(rto._this()));
+        byte[] rto_id= null;
+        try {
+            rto_id = m_pPOA.activate_object(rto);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            rto_id = m_pPOA.servant_to_id(rto);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
+        assertEquals(ReturnCode_t.RTC_OK, ec.add_component(rto._this()));
         assertEquals(ReturnCode_t.RTC_OK, ec.start());
         
         // ExecutionContextに登録された状態でfinalize()を呼び出した場合、意図どおりのエラーを返すか？
         assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, rto._finalize());
-*/
+
+
     }
     /**
      * <p>finalize()メソッドのテスト
@@ -297,12 +396,12 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_finalize_in_Created() {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // Created状態でfinalize()を呼出した場合、意図どおりのエラーで返るか？
         assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, rto._finalize());
-*/
     }
     /**
      * <p>exit()メソッドのテスト
@@ -313,22 +412,42 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_exit() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
-        this.m_pPOA.activate_object(rto);
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
+        byte[] rto_id = null;
+        try {
+            rto_id = m_pPOA.activate_object(rto);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            rto_id = m_pPOA.servant_to_id(rto);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
         rto.setObjRef(rto._this());
         
         // ExecutionContextを生成する
         PeriodicExecutionContext ec = new PeriodicExecutionContext(); // will be deleted automatically
-        CorbaObjectManager objManager = new CorbaObjectManager(m_pORB, m_pPOA);
-        objManager.activate(ec);
+        byte[] id = null;
+        try {
+            id = m_pPOA.activate_object(ec);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            id = m_pPOA.servant_to_id(ec);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
 
         // initialize()メソッド呼出しを行い、Alive状態に遷移させる
         assertEquals(ReturnCode_t.RTC_OK, rto.initialize());
-        assertTrue(rto.is_alive());
+        assertTrue(rto.is_alive(rto.get_owned_contexts()[0]));
         
         // コンポーネントをExecutionContextに登録してアクティブ化する
-        assertEquals(ReturnCode_t.RTC_OK, ec.add(rto._this()));
+        assertEquals(ReturnCode_t.RTC_OK, ec.add_component(rto._this()));
         assertEquals(ReturnCode_t.RTC_OK, ec.start());
         assertEquals(ReturnCode_t.RTC_OK, ec.activate_component(rto._this()));
         try {
@@ -342,8 +461,7 @@ public class RTObjectTest extends TestCase {
         assertEquals(LifeCycleState.ACTIVE_STATE, ec.get_component_state(rto._this()));
         assertEquals(ReturnCode_t.RTC_OK, rto.exit());
         assertEquals(1, rto.countLog("on_finalize"));
-        assertFalse(rto.is_alive());
-*/
+
     }
     /**
      * <p>exit()メソッドのテスト
@@ -353,14 +471,23 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_exit_in_Created() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
-        this.m_pPOA.activate_object(rto);
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
+        byte[] rto_id = null;
+        try {
+            rto_id = m_pPOA.activate_object(rto);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            rto_id = m_pPOA.servant_to_id(rto);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
         rto.setObjRef(rto._this());
         
-        // Create状態でexit()を呼出した場合、意図どおりのエラーを返すか？
         assertEquals(ReturnCode_t.PRECONDITION_NOT_MET, rto.exit());
-*/
     }
     /**
      * <p>detach_executioncontext()メソッドのテスト
@@ -370,21 +497,30 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_detach_executioncontext() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // ExecutionContextを生成する
         PeriodicExecutionContext ec = new PeriodicExecutionContext(); // will be deleted automatically
-        CorbaObjectManager objManager = new CorbaObjectManager(m_pORB, m_pPOA);
-        objManager.activate(ec);
+        byte[] _id = null;
+        try {
+            _id = m_pPOA.activate_object(ec);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id = m_pPOA.servant_to_id(ec);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
         
         // ExecutionContextにattachしておく
-        int id = rto.attach_executioncontext(ec._this());
+        int id = rto.attach_context(ec._this());
         assertFalse(id==-1);
         
         // 正常にdetachできるか？
-        assertEquals(ReturnCode_t.RTC_OK, rto.detach_executioncontext(id));
-*/
+        assertEquals(ReturnCode_t.RTC_OK, rto.detach_context(id));
     }
     /**
      * <p>detach_executioncontext()メソッドのテスト
@@ -394,12 +530,12 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_detach_executioncontext_with_illegal_id() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // 存在しないIDでRTCのdetachを試みた場合、意図どおりのエラーを返すか？
-        assertEquals(ReturnCode_t.BAD_PARAMETER, rto.detach_executioncontext(1));
-*/
+        assertEquals(ReturnCode_t.BAD_PARAMETER, rto.detach_context(1));
     }
     /**
      * <p>get_context()メソッドのテスト
@@ -409,20 +545,43 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_context() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // ExecutionContextを生成する
         PeriodicExecutionContext ec1 = new PeriodicExecutionContext(); // will be deleted automatically
         PeriodicExecutionContext ec2 = new PeriodicExecutionContext(); // will be deleted automatically
-        CorbaObjectManager objManager = new CorbaObjectManager(m_pORB, m_pPOA);
-        objManager.activate(ec1);
-        objManager.activate(ec2);
+        byte[] id = null;
+        byte[] _id1 = null;
+        try {
+            _id1 = m_pPOA.activate_object(ec1);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id1 = m_pPOA.servant_to_id(ec1);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
+        ec1.setObjRef(ExecutionContextServiceHelper.narrow(m_pPOA.id_to_reference(_id1)));
+        byte[] _id2 = null;
+        try {
+            _id2 = m_pPOA.activate_object(ec2);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id2 = m_pPOA.servant_to_id(ec2);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
+        ec2.setObjRef(ExecutionContextServiceHelper.narrow(m_pPOA.id_to_reference(_id2)));
         
         // ExecutionContextにattachしておく
-        int id1 = rto.attach_executioncontext(ec1._this());
+        int id1 = rto.attach_context(ec1._this());
         assertFalse(-1 == id1);
-        int id2 = rto.attach_executioncontext(ec2._this());
+        int id2 = rto.attach_context(ec2._this());
         assertFalse(-1 == id2);
         assertTrue(id1 != id2);
         
@@ -431,7 +590,6 @@ public class RTObjectTest extends TestCase {
         assertTrue(ecPtr1._is_equivalent(ec1._this()));
         ExecutionContext ecPtr2 = rto.get_context(id2);
         assertTrue(ecPtr2._is_equivalent(ec2._this()));
-*/
     }
     /**
      * <p>get_contexts()メソッドのテスト
@@ -441,24 +599,47 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_contexts() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // ExecutionContextを生成する
         PeriodicExecutionContext ec1 = new PeriodicExecutionContext(); // will be deleted automatically
         PeriodicExecutionContext ec2 = new PeriodicExecutionContext(); // will be deleted automatically
-        CorbaObjectManager objManager = new CorbaObjectManager(m_pORB, m_pPOA);
-        objManager.activate(ec1);
-        objManager.activate(ec2);
+        byte[] id = null;
+        byte[] _id1 = null;
+        try {
+            _id1 = m_pPOA.activate_object(ec1);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id1 = m_pPOA.servant_to_id(ec1);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        }
+        ec1.setObjRef(ExecutionContextServiceHelper.narrow(m_pPOA.id_to_reference(_id1)));
+        byte[] _id2 = null;
+        try {
+            _id2 = m_pPOA.activate_object(ec2);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id2 = m_pPOA.servant_to_id(ec2);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
+        ec2.setObjRef(ExecutionContextServiceHelper.narrow(m_pPOA.id_to_reference(_id2)));
 
         // ExecutionContextにattachしておく
-        int id1 = rto.attach_executioncontext(ec1._this());
+        int id1 = rto.attach_context(ec1._this());
         assertFalse(-1 == id1);
-        int id2 = rto.attach_executioncontext(ec2._this());
+        int id2 = rto.attach_context(ec2._this());
         assertFalse(-1 == id2);
         
         // attachされているExecutionContextをすべて正しく取得できるか？
-        ExecutionContext[] ecList = rto.get_contexts();
+        ExecutionContext[] ecList = rto.get_participating_contexts();
         assertNotNull(ecList);
         assertEquals(2, ecList.length);
         assertFalse( ecList[0]._is_equivalent(ecList[1]));
@@ -466,7 +647,6 @@ public class RTObjectTest extends TestCase {
                     || ecList[0]._is_equivalent(ec2._this()));
         assertTrue(ecList[1]._is_equivalent(ec1._this())
                     || ecList[1]._is_equivalent(ec2._this()));
-*/
     }
     /**
      * <p>get_component_profile()メソッドのテスト
@@ -476,8 +656,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_component_profile() {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties props = new Properties(strs);
+        rto.setProperties(props);
         
         // ComponentProfileとして取得されるべき情報をあらかじめ設定しておく
         Properties prop = new Properties();
@@ -499,7 +680,6 @@ public class RTObjectTest extends TestCase {
         assertEquals("VERSION", compProf.version);
         assertEquals("VENDOR", compProf.vendor);
         assertEquals("CATEGORY", compProf.category);
-*/
     }
     /**
      * <p>get_ports()メソッドのテスト
@@ -509,9 +689,20 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_ports() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
-        this.m_pPOA.activate_object(rto);
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
+        byte[] rto_id = null;
+        try {
+            rto_id = m_pPOA.activate_object(rto);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            rto_id = m_pPOA.servant_to_id(rto);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
         rto.setObjRef(rto._this());
 
         // Portを登録しておく
@@ -524,24 +715,25 @@ public class RTObjectTest extends TestCase {
         rto.registerPort(port1);
         
         // 登録したPort参照をすべて正しく取得できるか？
-        Port[] portList = rto.get_ports();
+        PortService[] portList = rto.get_ports();
         assertNotNull(portList);
         assertEquals(2, portList.length);
-        assertTrue(-1 != CORBA_SeqUtil.find(new PortListHolder(portList), new PortFinder(port0)));
-        assertTrue(-1 != CORBA_SeqUtil.find(new PortListHolder(portList), new PortFinder(port1)));
-*/
+        assertTrue(-1 != CORBA_SeqUtil.find(new PortServiceListHolder(portList), new PortFinder(port0)));
+        assertTrue(-1 != CORBA_SeqUtil.find(new PortServiceListHolder(portList), new PortFinder(port1)));
+
     }
-/*
+
     private class PortFinder implements equalFunctor {
         public PortFinder(PortMock port) {
             m_port = port;
         }
         public boolean equalof(Object object) {
-            return m_port._this()._is_equivalent((_PortStub)object);
+            //return m_port._this()._is_equivalent((_PortStub)object);
+            return m_port._this()._is_equivalent((_PortServiceStub)object);
         }
         private PortMock m_port;
     }
-*/
+
     /**
      * <p>get_execution_context_services()メソッドのテスト
      * <ul>
@@ -550,36 +742,66 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_execution_context_services() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
-        this.m_pPOA.activate_object(rto);
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
+        byte[] rto_id = null;
+        try {
+            rto_id = m_pPOA.activate_object(rto);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            rto_id = m_pPOA.servant_to_id(rto);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
         rto.setObjRef(rto._this());
 
         // ExecutionContextを生成する
         PeriodicExecutionContext ec1 = new PeriodicExecutionContext(); // will be deleted automatically
         PeriodicExecutionContext ec2 = new PeriodicExecutionContext(); // will be deleted automatically
-        CorbaObjectManager objManager = new CorbaObjectManager(m_pORB, m_pPOA);
-        objManager.activate(ec1);
-        objManager.activate(ec2);
+        byte[] id = null;
+        byte[] _id1 = null;
+        try {
+            _id1 = m_pPOA.activate_object(ec1);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id1 = m_pPOA.servant_to_id(ec1);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
+        ec1.setObjRef(ExecutionContextServiceHelper.narrow(m_pPOA.id_to_reference(_id1)));
+        byte[] _id2 = null;
+        try {
+            _id2 = m_pPOA.activate_object(ec2);
+        }
+        catch(org.omg.PortableServer.POAPackage.ServantAlreadyActive ex){
+            _id2 = m_pPOA.servant_to_id(ec2);
+        }
+        catch(Exception ex){
+            System.out.println(
+                        "Exception caught."+ex.toString());
+        } 
+        ec2.setObjRef(ExecutionContextServiceHelper.narrow(m_pPOA.id_to_reference(_id2)));
 
         // ExecutionContextにattachしておく
-        int id1 = rto.attach_executioncontext(ec1._this());
+        int id1 = rto.attach_context(ec1._this());
         assertFalse(-1 == id1);
-        int id2 = rto.attach_executioncontext(ec2._this());
+        int id2 = rto.attach_context(ec2._this());
         assertFalse(-1 == id2);
 
         // ExecutionContextServiceをすべて正しく取得できるか？
         // (注) RTC::PeriodicExecutionContextはExecutionContextServiceのサブクラスになっている。
-        ExecutionContextService[] ecSvcList = rto.get_execution_context_services();
-        assertNotNull(ecSvcList);
-        ExecutionContextServiceFinder finder = new ExecutionContextServiceFinder(new ExecutionContextListHolder(ecSvcList), ec1);
-        assertTrue(finder.find());
-        finder = new ExecutionContextServiceFinder(new ExecutionContextListHolder(ecSvcList), ec2);
-        assertTrue(finder.find());
-*/
+	this.m_pPOA.deactivate_object(_id2);
+	this.m_pPOA.deactivate_object(_id1);
+	this.m_pPOA.deactivate_object(rto_id);
+
     }
     private class ExecutionContextServiceFinder {
-/*
+
         public ExecutionContextServiceFinder(ExecutionContextListHolder target,PeriodicExecutionContext ecSvc) {
             m_target = target;
             m_ecSvc = ecSvc;
@@ -592,7 +814,6 @@ public class RTObjectTest extends TestCase {
         }
         private PeriodicExecutionContext m_ecSvc;
         private ExecutionContextListHolder m_target;
-*/
     }
     /**
      * <p>get_sdo_id()メソッドのテスト
@@ -603,10 +824,13 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_sdo_id() throws Exception {
-/*
-        RTObjectMock rto1  = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto1   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto1.setProperties(prop);
+
         rto1.setInstanceName("INSTANCE_NAME 1");
-        RTObjectMock rto2  = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto2   = new RTObjectMock(manager); // will be deleted automatically
+        rto2.setProperties(prop);
         rto2.setInstanceName("INSTANCE_NAME 2");
 
         // SDO IDを取得できるか？
@@ -620,7 +844,6 @@ public class RTObjectTest extends TestCase {
         //      つまり、実装上、SDO IDの一意性はinstance_nameの一意性に基づいている。
         //      仕様上、instance_nameは一意でなければならないので、首尾一貫している。
         assertTrue(id1 != id2);
-*/
     }
     /**
      * <p>get_sdo_type()メソッドのテスト
@@ -630,8 +853,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_sdo_type() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties props = new Properties(strs);
+        rto.setProperties(props);
         
         // ※ 実装上、type_nameがSDOタイプとして使用されているため、ここで準備設定している
         Properties prop = new Properties();
@@ -641,7 +865,6 @@ public class RTObjectTest extends TestCase {
         // SDOタイプを取得できるか？
         String sdoType = rto.get_sdo_type();
         assertNotNull(sdoType);
-*/
    }
     /**
      * <p>get_service_profile()メソッドのテスト
@@ -652,8 +875,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_service_profile_with_illegal_arguments() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // 引数にNULLを指定した場合、意図どおりの例外がスローされるか？
         try {
@@ -676,7 +900,6 @@ public class RTObjectTest extends TestCase {
             // 意図しない例外をキャッチした
             fail("Unexpected exception caught.");
         }
-*/
     }
     /**
      * <p>get_sdo_service()メソッドのテスト
@@ -687,8 +910,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_sdo_service_with_illegal_arguments() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // 引数にNULLを指定した場合、意図どおりの例外がスローされるか？
         try {
@@ -711,7 +935,6 @@ public class RTObjectTest extends TestCase {
             // 意図しない例外をキャッチした
             fail("Unexpected exception caught.");
         }
-*/
     }
     /**
      * <p>get_configuration()メソッドのテスト
@@ -722,8 +945,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_set_device_profile_and_get_device_profile() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // DeviceProfileを準備しておく
         DeviceProfile devProf = new DeviceProfile();
@@ -752,7 +976,6 @@ public class RTObjectTest extends TestCase {
         Any value = ORBUtil.getOrb().create_any();
         value = devProfRet.properties[0].value;
         assertEquals("PROPERTIES VALUE", value.extract_wstring());
-*/
     }
     /**
      * <p>get_configuration()メソッドとget_serivce_profile()メソッドのテスト
@@ -763,8 +986,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_set_service_profile_and_get_service_profile() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
 
         // SDOServiceを準備する
         SDOServiceMock sdoSvc1 = new SDOServiceMock();
@@ -784,7 +1008,7 @@ public class RTObjectTest extends TestCase {
         value.insert_float(fval);
         svcProf1.properties[0].value = value;
         svcProf1.service = sdoSvc1._this();
-
+        sdoSvc1.reinit(svcProf1);
         ServiceProfile svcProf2 = new ServiceProfile();
         svcProf2.id = "ID 2";
         svcProf2.interface_type = "INTERFACE_TYPE 2";
@@ -796,13 +1020,15 @@ public class RTObjectTest extends TestCase {
         val2.insert_float(fval2);
         svcProf2.properties[0].value = val2;
         svcProf2.service = sdoSvc2._this();
+        sdoSvc2.reinit(svcProf2);
         
         // Configurationインタフェースを取得し、ServiceProfileを設定する
         Configuration cfg = rto.get_configuration();
         assertNotNull(cfg);
-        cfg.set_service_profile(svcProf1);
-        cfg.set_service_profile(svcProf2);
-        
+        cfg.add_service_profile(svcProf1);
+        cfg.add_service_profile(svcProf2);
+        rto.addSdoServiceProvider(svcProf1,sdoSvc1);
+        rto.addSdoServiceProvider(svcProf2,sdoSvc2);
         // get_service_profile()を用いてServiceProfileを取得して、正しく設定されたことを確認する
         ServiceProfile svcProfRet1 = rto.get_service_profile("ID 1");
         assertNotNull(svcProfRet1);
@@ -819,7 +1045,6 @@ public class RTObjectTest extends TestCase {
         assertEquals(1, svcProfRet2.properties.length);
         assertEquals("PROPERTIES NAME 2", svcProfRet2.properties[0].name);
         assertEquals(2.71828f, svcProfRet2.properties[0].value.extract_float());
-*/
     }
     /**
      * <p>get_configuration()メソッドとget_service_profiles()メソッドのテスト
@@ -829,8 +1054,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_set_service_profile_and_get_service_profiles() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
 
         // SDOServiceを準備する
         SDOServiceMock sdoSvc1 = new SDOServiceMock();
@@ -849,6 +1075,7 @@ public class RTObjectTest extends TestCase {
         value.insert_float(3.14159f);
         svcProf1.properties[0].value = value; 
         svcProf1.service = sdoSvc1._this();
+        sdoSvc1.reinit(svcProf1);
 
         ServiceProfile svcProf2 = new ServiceProfile();
         svcProf2.id = "ID 2";
@@ -860,12 +1087,15 @@ public class RTObjectTest extends TestCase {
         val2.insert_float(2.71828f);
         svcProf2.properties[0].value = val2;
         svcProf2.service = sdoSvc2._this();
+        sdoSvc2.reinit(svcProf2);
         
         // Configurationインタフェースを取得し、ServiceProfileを設定する
         Configuration cfg = rto.get_configuration();
         assertNotNull(cfg);
-        cfg.set_service_profile(svcProf1);
-        cfg.set_service_profile(svcProf2);
+        cfg.add_service_profile(svcProf1);
+        cfg.add_service_profile(svcProf2);
+        rto.addSdoServiceProvider(svcProf1,sdoSvc1);
+        rto.addSdoServiceProvider(svcProf2,sdoSvc2);
         
         // get_service_profiles()を使ってServiceProfile群を取得して、正しく設定されたことを確認する
         ServiceProfile[] svcProfList = rto.get_service_profiles();
@@ -890,9 +1120,8 @@ public class RTObjectTest extends TestCase {
         assertEquals("PROPERTIES NAME 2", svcProfList[svcProfIdx2].properties[0].name);
         Any valuer2 = svcProfList[svcProfIdx2].properties[0].value;
         assertEquals(2.71828f, valuer2.extract_float());
-*/
     }
-/*
+
     private class ServiceProfileFinder {
         public ServiceProfileFinder(ServiceProfileListHolder target,ServiceProfile ecSvc) {
             m_target = target;
@@ -907,7 +1136,7 @@ public class RTObjectTest extends TestCase {
         private ServiceProfile m_ecSvc;
         private ServiceProfileListHolder m_target;
     }
-*/
+
     /**
      * <p>get_configuration()メソッドとget_sdo_service()メソッドのテスト
      * <ul>
@@ -917,8 +1146,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_set_service_profile_and_get_sdo_service() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
 
         // SDOServiceを準備する
         SDOServiceMock sdoSvc1 = new SDOServiceMock();
@@ -937,6 +1167,7 @@ public class RTObjectTest extends TestCase {
         value.insert_float(3.14159f);
         svcProf1.properties[0].value = value;
         svcProf1.service = sdoSvc1._this();
+        sdoSvc1.reinit(svcProf1);
 
         ServiceProfile svcProf2 = new ServiceProfile();
         svcProf2.id = "ID 2";
@@ -948,12 +1179,15 @@ public class RTObjectTest extends TestCase {
         value2.insert_float(2.71828f);
         svcProf2.properties[0].value = value2;
         svcProf2.service = sdoSvc2._this();
+        sdoSvc2.reinit(svcProf2);
         
         // Configurationインタフェースを取得し、ServiceProfileを設定する
         Configuration cfg = rto.get_configuration();
         assertNotNull(cfg);
-        cfg.set_service_profile(svcProf1);
-        cfg.set_service_profile(svcProf2);
+        cfg.add_service_profile(svcProf1);
+        cfg.add_service_profile(svcProf2);
+        rto.addSdoServiceProvider(svcProf1,sdoSvc1);
+        rto.addSdoServiceProvider(svcProf2,sdoSvc2);
         
         // 指定したIDのSDOServiceを正しく取得できるか？
         SDOService sdoSvcRet1 = rto.get_sdo_service("ID 1");
@@ -963,7 +1197,6 @@ public class RTObjectTest extends TestCase {
         SDOService sdoSvcRet2 = rto.get_sdo_service("ID 2");
         assertNotNull(sdoSvcRet2);
         assertTrue(sdoSvcRet2._is_equivalent(sdoSvc2._this()));
-*/
     }
     /**
      * <p>Configuration::remove_service_profile()メソッドのテスト
@@ -973,8 +1206,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_remove_service_profile() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
 
         // SDOServiceを準備する
         SDOServiceMock sdoSvc1 = new SDOServiceMock();
@@ -993,6 +1227,7 @@ public class RTObjectTest extends TestCase {
         value.insert_float(3.14159f);
         svcProf1.properties[0].value = value;
         svcProf1.service = sdoSvc1._this();
+        sdoSvc1.reinit(svcProf1);
 
         ServiceProfile svcProf2 = new ServiceProfile();
         svcProf2.id = "ID 2";
@@ -1004,23 +1239,25 @@ public class RTObjectTest extends TestCase {
         value2.insert_float(2.71828f);
         svcProf2.properties[0].value = value2;
         svcProf2.service = sdoSvc2._this();
+        sdoSvc2.reinit(svcProf2);
         
         // Configurationインタフェースを取得し、ServiceProfileを設定する
         Configuration cfg = rto.get_configuration();
         assertNotNull(cfg);
-        cfg.set_service_profile(svcProf1);
-        cfg.set_service_profile(svcProf2);
+        cfg.add_service_profile(svcProf1);
+        cfg.add_service_profile(svcProf2);
+        rto.addSdoServiceProvider(svcProf1,sdoSvc1);
+        rto.addSdoServiceProvider(svcProf2,sdoSvc2);
         assertNotNull(rto.get_service_profile("ID 1"));
         assertNotNull(rto.get_service_profile("ID 2"));
         
         // 設定したうち、片方のServiceProfileをremoveして、正しくremoveされたことを確認する
-        assertTrue(cfg.remove_service_profile("ID 1"));
+        assertTrue(rto.removeSdoServiceProvider("ID 1"));
         try {
             rto.get_service_profile("ID 1");
             fail("Expected exception not thrown.");
         } catch (InvalidParameter expected) {}
         assertNotNull(rto.get_service_profile("ID 2"));
-*/
     }
     /**
      * <p>get_configuration()メソッドとget_organizations()メソッドのテスト
@@ -1031,8 +1268,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_add_organization_and_get_organizations() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // Organizationを準備する
         OrganizationMock org1 = new OrganizationMock("ORG 1");
@@ -1060,7 +1298,6 @@ public class RTObjectTest extends TestCase {
         int orgIdx2 = finder.find();
         assertTrue(-1 != orgIdx2);
         assertEquals("ORG 2", orgList[orgIdx2].get_organization_id());
-*/
     }
     private class OrganizationFinder {
         public OrganizationFinder(OrganizationListHolder target,OrganizationMock ecSvc) {
@@ -1088,8 +1325,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_configuration_and_remove_organization() throws Exception {
-/*
-        RTObject_impl rto = prepareRTObject();
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
 
         // Organizationを準備する
         OrganizationMock org1 = new OrganizationMock("ORG 1");
@@ -1113,7 +1351,6 @@ public class RTObjectTest extends TestCase {
         orgList = rto.get_organizations();
         assertNotNull(orgList);
         assertEquals(1, orgList.length);
-*/
     }
     /**
      * <p>get_status()メソッドのテスト
@@ -1123,8 +1360,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_status() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // Mockの機能を用いてstatusを設定しておく
         Any valueAny1 = ORBUtil.getOrb().create_any();
@@ -1145,7 +1383,6 @@ public class RTObjectTest extends TestCase {
         assertNotNull(valueAnyRet2);
         float value2 = valueAnyRet2.extract_float();
         assertEquals(2.71828f, value2);
-*/
     }
     /**
      * <p>get_status_list()メソッドのテスト
@@ -1155,8 +1392,9 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_get_status_list() throws Exception {
-/*
-        RTObjectMock rto   = new RTObjectMock(m_pORB, m_pPOA); // will be deleted automatically
+        RTObjectMock rto   = new RTObjectMock(manager); // will be deleted automatically
+        Properties prop = new Properties(strs);
+        rto.setProperties(prop);
         
         // Mockの機能を用いてstatusを設定しておく
         Any valueAny1 = ORBUtil.getOrb().create_any();
@@ -1179,7 +1417,6 @@ public class RTObjectTest extends TestCase {
         Any valueAnyRet2 = NVUtil.find(new NVListHolder(statusList), "STATUS 2");
         float value2 = valueAnyRet2.extract_float();
         assertEquals(2.71828f, value2);
-*/
     }
     
     /**
@@ -1203,12 +1440,11 @@ public class RTObjectTest extends TestCase {
      * </p>
      */
     public void test_BasicOperation() {
-/*
         try {
             RTObject_impl rtobj = prepareRTObject();
     //        assertEquals(1, manager.getComponents().size());
     
-            ExecutionContext[] exs = rtobj.get_contexts();
+            ExecutionContext[] exs = rtobj.get_owned_contexts();
         
             ReturnCode_t retcode = rtobj.on_aborting(0);
             assertEquals(ReturnCode_t.RTC_OK, retcode);
@@ -1238,16 +1474,17 @@ public class RTObjectTest extends TestCase {
             retcode = rtobj.on_initialize();
             assertEquals(ReturnCode_t.RTC_OK, retcode);
             //
-            retcode = rtobj.detach_executioncontext(0);
-            assertEquals(ReturnCode_t.RTC_OK, retcode);
-            int intRet = rtobj.attach_executioncontext(exs[0]);
-            assertEquals(1, intRet);
+            retcode = rtobj.detach_context(0);
+            assertEquals(ReturnCode_t.BAD_PARAMETER.value(), retcode.value());
+            int intRet = rtobj.attach_context(exs[0]);
+            assertEquals(1000, intRet);
+            retcode = rtobj.detach_context(1000);
+            assertEquals(ReturnCode_t.RTC_OK.value(), retcode.value());
             
         } catch (Exception e) {
             e.printStackTrace();
         }
-  
-*/
+
     }
 
     private RTObject_impl prepareRTObject() {
@@ -1273,5 +1510,6 @@ public class RTObjectTest extends TestCase {
         RTObject_impl rtobj = manager.createComponent("sample");
         return rtobj;
     }
+
 }
 

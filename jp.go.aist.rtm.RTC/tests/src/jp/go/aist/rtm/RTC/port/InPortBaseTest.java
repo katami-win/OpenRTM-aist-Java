@@ -23,6 +23,7 @@ import jp.go.aist.rtm.RTC.PublisherBaseFactory;
 import jp.go.aist.rtm.RTC.buffer.BufferBase;
 import jp.go.aist.rtm.RTC.buffer.RingBuffer;
 import jp.go.aist.rtm.RTC.buffer.CdrRingBuffer;
+import jp.go.aist.rtm.RTC.port.ConnectorBase;
 import jp.go.aist.rtm.RTC.port.OutPortBase;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherBase;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherNew;
@@ -359,11 +360,11 @@ public class InPortBaseTest extends TestCase {
           return true;
       }
   };
-/*
     class MockInPortConnector extends InPortConnector {
         public MockInPortConnector(ConnectorInfo profile, 
+                    ConnectorListeners listeners,
                     BufferBase<OutputStream> buffer) {
-            super(profile, buffer);
+            super(profile, listeners, buffer);
         }
         public void setListener(ConnectorInfo profile, 
                         ConnectorListeners listeners){
@@ -381,7 +382,21 @@ public class InPortBaseTest extends TestCase {
         }
         protected double _data = 0.0;
     }
-*/
+
+    class TestListener extends ConnectorListener{
+        public TestListener(final String name){
+            //super();
+            m_name = name;
+        }
+
+        public jp.go.aist.rtm.RTC.connectorListener.ReturnCode operator(ConnectorBase.ConnectorInfo info){
+            return jp.go.aist.rtm.RTC.connectorListener.ReturnCode.NO_CHANGE;
+        }
+        public String m_name;
+    }
+
+
+
     public static Logger m_mock_logger = null;
     private ORB m_orb;
     private POA m_poa;
@@ -445,6 +460,8 @@ public class InPortBaseTest extends TestCase {
     
     protected void tearDown() throws Exception {
         super.tearDown();
+        rtcout.removeStream(m_fh);
+        rtcout.removeStreamAll();
     }
 
     /**
@@ -510,7 +527,6 @@ public class InPortBaseTest extends TestCase {
         }
 
         //
-//        CdrRingBufferMock.CdrRingBufferMockInit();
         CdrRingBufferMockInit();
 
         InPortBaseMock inport = new InPortBaseMock("InPortBaseTest", "TimedFloat");
@@ -530,19 +546,15 @@ public class InPortBaseTest extends TestCase {
         assertEquals("4:",0, pstr.size());
         Vector<String> cstr = inport.get_m_consumerTypes();
         assertEquals("5:",0, cstr.size());
-//        RingBufferMock.m_mock_logger.clearLog();
         m_mock_logger.clearLog();
         assertEquals("6:",0,
-//             RingBufferMock.m_mock_logger.countLog("RingBufferMock.Constructor"));
              m_mock_logger.countLog("RingBufferMock.Constructor"));
 
-        //inport.init();
         inport.init(prop);
 
         //
-        assertTrue("7:",null!=inport.getThebuffer());
-        assertEquals("8:",1,
-//             RingBufferMock.m_mock_logger.countLog("RingBufferMock.Constructor"));
+        assertTrue("7:",null==inport.getThebuffer());
+        assertEquals("8:",0,
              m_mock_logger.countLog("RingBufferMock.Constructor"));
 
         profile = inport.getPortProfile();
@@ -1545,7 +1557,6 @@ public class InPortBaseTest extends TestCase {
      * @brief subscribeInterfaces()
      *
      */
-/*
     public void test_subscribeInterfaces2()
     {
         //
@@ -1610,8 +1621,12 @@ public class InPortBaseTest extends TestCase {
         ConnectorBase.ConnectorInfo profile 
             = new ConnectorBase.ConnectorInfo("test","id0",ports,prop);
         InPortConnector inport_conn = null; 
+        ConnectorListeners listeners = new ConnectorListeners();
+        listeners.connector_[ConnectorListenerType.ON_CONNECT].addObserver(new TestListener("TEST"));
         try{
-            inport_conn = new MockInPortConnector(profile,null);
+            inport_conn = new MockInPortConnector(profile,
+                                                  listeners,
+                                                  null);
         }
         catch(Exception ex) {
         }
@@ -1628,7 +1643,6 @@ public class InPortBaseTest extends TestCase {
 
         portAdmin.deletePort(inport);
     }
-*/
     /**
      * @brief subscribeInterfaces()
      * 
