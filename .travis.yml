@@ -12,4 +12,5 @@ jdk:
 
 script:
   - bash buildRTC.sh
-  
+#  - ./jp.go.aist.rtm.RTC/src/RTMExamples_scripts/start-orbd.sh
+#  - bash buildTests.sh
