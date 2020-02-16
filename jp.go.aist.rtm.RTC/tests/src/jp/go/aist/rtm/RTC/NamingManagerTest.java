@@ -72,7 +72,10 @@ public class NamingManagerTest extends TestCase {
         ManagerMock.clearInstance();
         this.m_mgr = null;
 
-        String param[] = { "-o","logger.enable:NO" };
+        String param[] = {
+                            "-o","logger.enable:NO",
+                            "-o","manager.shutdown_on_nortcs:no",
+                         };
         this.m_mgr = Manager.init(param);
 //        this.m_mgr.activateManager();
         this.m_pORB = m_mgr.getORB();
