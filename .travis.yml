@@ -1,6 +1,9 @@
 dist: xenial
 language: java
 
+before_install:
+  - sudo apt-get install junit
+
 addons:
   apt:
     packages:
@@ -12,5 +15,5 @@ jdk:
 
 script:
   - bash buildRTC.sh
-#  - ./jp.go.aist.rtm.RTC/src/RTMExamples_scripts/start-orbd.sh
-#  - bash buildTests.sh
+  - ./jp.go.aist.rtm.RTC/src/RTMExamples_scripts/start-orbd.sh &
+  - bash buildTests.sh
