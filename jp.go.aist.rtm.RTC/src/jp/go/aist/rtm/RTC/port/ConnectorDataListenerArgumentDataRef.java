@@ -30,6 +30,7 @@ public class ConnectorDataListenerArgumentDataRef<DataType> {
     public DataType m_data;
     // public EnumSet<ReturnCode> m_ret;
     public ReturnCode m_ret;
+    public PortType m_porttype;
     public void setReturnCode(ReturnCode ret) {
         m_ret = ReturnCode.or(m_ret,ret);
     }

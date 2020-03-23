@@ -7,11 +7,14 @@ import java.util.Observable;
 import java.util.Observer;
 
 import org.omg.CORBA.portable.Streamable;
+import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
+import jp.go.aist.rtm.RTC.SerializerFactory;
 import jp.go.aist.rtm.RTC.connectorListener.ReturnCode;
 import jp.go.aist.rtm.RTC.log.Logbuf;
 
+import jp.go.aist.rtm.RTC.util.DataRef;
 import jp.go.aist.rtm.RTC.util.ORBUtil;
 import jp.go.aist.rtm.RTC.util.Properties;
 
@@ -133,7 +136,7 @@ public abstract class ConnectorDataListenerT<DataType> implements Observer{
         ReturnCode ret = operator(arg.m_info,m_datatype);
         if (ret == ReturnCode.DATA_CHANGED || ret == ReturnCode.BOTH_CHANGED) {
             arg.m_data  = m_datatype;
-            try {
+//            try {
 
                 String endian_type = arg.m_info.properties.
                         getProperty("serializer.cdr.endian","little");
@@ -146,6 +149,7 @@ public abstract class ConnectorDataListenerT<DataType> implements Observer{
                 if(!endian[0].equals("little")){
                     endian_flag = false;
                 }
+/*
                 OutputStream out_data 
                     = new EncapsOutputStreamExt(ORBUtil.getOrb(),endian_flag);
                 m_field.set(m_streamable,m_datatype);
@@ -155,7 +159,41 @@ public abstract class ConnectorDataListenerT<DataType> implements Observer{
                 String str = cl.getName();
                 rtcout.println(Logbuf.PARANOID,"class name:"+str);
                 cl.getField("m_data").set(obj,out_data);
-            }
+*/
+                String marshaling_type = arg.m_info.properties.getProperty(
+                    "marshaling_type", "corba");
+                String dir_marshaling_type = marshaling_type;
+		if(arg.m_porttype.equals(PortType.OutPortType)) {
+                    dir_marshaling_type = arg.m_info.properties.getProperty(
+                        "out.marshaling_type", marshaling_type);
+                }
+		else if(arg.m_porttype.equals(PortType.InPortType)){
+                    dir_marshaling_type = arg.m_info.properties.getProperty(
+                        "in.marshaling_type", marshaling_type);
+                }
+                dir_marshaling_type = dir_marshaling_type.trim();
+
+                //SerializerFactory<ByteDataStreamBase,String> factory 
+                //        = SerializerFactory.instance();
+                //ByteDataStreamBase serializer = factory.createObject(dir_marshaling_type);
+                //CORBA_CdrMemoryStream serializer = factory.createObject(dir_marshaling_type);
+                SerializerFactory<CORBA_CdrSerializer,String> factory 
+                        = SerializerFactory.instance();
+                CORBA_CdrSerializer serializer = factory.createObject(dir_marshaling_type);
+
+                serializer.isLittleEndian(endian_flag);
+                DataRef<DataType> data = new DataRef<DataType>(m_datatype);
+                OutputStream out_data 
+                    = new EncapsOutputStreamExt(ORBUtil.getOrb(),endian_flag);
+                //ret = serializer.deserialize(cdrdata, data);
+                //DataRef<DataType> dataref = new DataRef<DataType>(data);
+                //ret = serializer.deserialize(out_data, data);
+                //InputStream in_data = out_data.create_input_stream();
+                //ret = serializer.deserialize(data, in_data);
+                //SerializeReturnCode sret = serializer.deserialize(data, in_data);
+                SerializeReturnCode sret = serializer.deserialize(data, out_data);
+//            }
+/*
             catch(NoSuchFieldException e){
                 rtcout.println(Logbuf.WARN, 
                         "Exception caught."+e.toString());
@@ -168,6 +206,7 @@ public abstract class ConnectorDataListenerT<DataType> implements Observer{
                 rtcout.println(Logbuf.WARN, 
                         "Exception caught."+e.toString());
             }
+*/
         }
         arg.setReturnCode(ret);
     }
