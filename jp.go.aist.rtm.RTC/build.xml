@@ -736,6 +736,8 @@
 				<pathelement location="${env.JUNIT_HOME}/junit.jar"/>
 				<pathelement location="${env.ANT_HOME}/lib/ant-junit.jar"/>
 			</classpath>
+			<test name="jp.go.aist.rtm.RTC.port.ConnectorDataListenerTTests"/>
+			<test name="jp.go.aist.rtm.RTC.port.CORBA_CdrSerializeTests"/>
 			<test name="jp.go.aist.rtm.RTC.ConfigAdminTest"/>
 			<test name="jp.go.aist.rtm.RTC.ConfigTest"/>
 			<test name="jp.go.aist.rtm.RTC.CorbaNamingTest"/>
@@ -777,6 +779,7 @@
 			<test name="jp.go.aist.rtm.RTC.port.InPortCorbaCdrConsumerTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.InPortCorbaCdrProviderTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.InPortPushConnectorTest"/>
+			<test name="jp.go.aist.rtm.RTC.port.InPortPullConnectorTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.InPortTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.OutPortBaseTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.OutPortCorbaCdrProviderTest"/>
@@ -785,6 +788,7 @@
 			<test name="jp.go.aist.rtm.RTC.port.OutPortProviderImplTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.OutPortProviderTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.OutPortPushConnectorTest"/>
+			<test name="jp.go.aist.rtm.RTC.port.OutPortPullConnectorTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.OutPortTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.PortAdminTest"/>
 			<test name="jp.go.aist.rtm.RTC.port.PortBaseTest"/>

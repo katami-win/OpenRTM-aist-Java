@@ -21,6 +21,7 @@ import jp.go.aist.rtm.RTC.port.InPortDSProvider;
 import jp.go.aist.rtm.RTC.port.InPortDSConsumer;
 import jp.go.aist.rtm.RTC.port.OutPortDSProvider;
 import jp.go.aist.rtm.RTC.port.OutPortDSConsumer;
+import jp.go.aist.rtm.RTC.port.CORBA_CdrSerializer;
 
 import jp.go.aist.rtm.RTC.ComponentObserverConsumer;
 
@@ -79,5 +80,8 @@ public class FactoryInit {
 
         ComponentObserverConsumer.ComponentObserverConsumerInit();
         //ExtendedFsmServiceProvider.ExtendedFsmServiceProviderInit();
+
+        CORBA_CdrSerializer.CORBA_CdrSerializerInit();
+
     }
 }

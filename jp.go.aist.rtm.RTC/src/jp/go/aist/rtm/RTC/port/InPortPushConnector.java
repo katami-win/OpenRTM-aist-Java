@@ -2,6 +2,7 @@ package jp.go.aist.rtm.RTC.port;
 
 import jp.go.aist.rtm.RTC.BufferFactory;
 import jp.go.aist.rtm.RTC.InPortProviderFactory;
+import jp.go.aist.rtm.RTC.SerializerFactory;
 import jp.go.aist.rtm.RTC.buffer.BufferBase;
 import jp.go.aist.rtm.RTC.log.Logbuf;
 import jp.go.aist.rtm.RTC.util.DataRef;
@@ -82,6 +83,16 @@ public class InPortPushConnector extends InPortConnector {
         m_provider.setListener(profile, m_listeners);
 
         onConnect();
+
+        String marshaling_type = profile.properties.getProperty(
+            "marshaling_type", "corba");
+        marshaling_type = profile.properties.getProperty(
+            "in.marshaling_type",marshaling_type);
+        m_marshaling_type = marshaling_type.trim();
+
+        final SerializerFactory<CORBA_CdrSerializer,String> factory 
+            = SerializerFactory.instance();
+        m_serializer = factory.createObject(m_marshaling_type);
     }
     public void setListener(ConnectorInfo profile, 
                             ConnectorListeners listeners){
@@ -146,9 +157,45 @@ public class InPortPushConnector extends InPortConnector {
                                         = m_buffer.read(dataref, -1, -1);
         //data.v = dataref.v.create_input_stream();
         //return convertReturn(ret,dataref.v);
+/*
         ReturnCode code = convertReturn(ret,dataref);
         data.v = dataref.v.create_input_stream();
         return code;
+*/
+        if(ret != jp.go.aist.rtm.RTC.buffer.ReturnCode.BUFFER_OK){
+            ReturnCode code = convertReturn(ret,dataref);
+            data.v = dataref.v.create_input_stream();
+            return code;
+        }
+        else {
+            onBufferRead(dataref);
+            if(m_serializer == null){
+                rtcout.println(Logbuf.ERROR, "serializer creation failure.");
+                return ReturnCode.UNKNOWN_ERROR;
+            }
+            m_serializer.isLittleEndian(m_isLittleEndian);
+            //InputStream in_cdr = cdr.create_input_stream();
+            //SerializeReturnCode ser_ret = m_serializer.deserialize(dataref,in_cdr);
+            SerializeReturnCode ser_ret = m_serializer.deserialize(dataref,cdr);
+
+            if(ser_ret.equals(SerializeReturnCode.SERIALIZE_OK)){
+                //data = _data;
+                return ReturnCode.PORT_OK;
+            }
+	    else if(ser_ret.equals(SerializeReturnCode.SERIALIZE_NOT_SUPPORT_ENDIAN)){
+                rtcout.println(Logbuf.ERROR, "unknown endian from connector");
+                return ReturnCode.UNKNOWN_ERROR;
+            }
+	    else if(ser_ret.equals(SerializeReturnCode.SERIALIZE_ERROR)){
+                rtcout.println(Logbuf.ERROR, "unknown error");
+                return ReturnCode.UNKNOWN_ERROR;
+            }
+	    else if(ser_ret.equals(SerializeReturnCode.SERIALIZE_NOTFOUND)){
+                rtcout.println(Logbuf.ERROR, "unknown serializer from connector");
+                return ReturnCode.UNKNOWN_ERROR;
+            }
+        }
+        return ReturnCode.PORT_ERROR;
     }
 
     /**
@@ -178,6 +225,9 @@ public class InPortPushConnector extends InPortConnector {
             bfactory.deleteObject(m_buffer);
         }
         m_buffer = null;
+
+        m_serializer = null;
+
         return ReturnCode.PORT_OK;
     }
 
@@ -291,4 +341,6 @@ public class InPortPushConnector extends InPortConnector {
      */
     private ConnectorListeners m_listeners;
 
+    private String m_marshaling_type;
+    private CORBA_CdrSerializer m_serializer;
 }

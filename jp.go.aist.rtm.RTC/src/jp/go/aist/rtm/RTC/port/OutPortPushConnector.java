@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import jp.go.aist.rtm.RTC.BufferFactory;
 import jp.go.aist.rtm.RTC.InPortConsumerFactory;
 import jp.go.aist.rtm.RTC.PublisherBaseFactory;
+import jp.go.aist.rtm.RTC.SerializerFactory;
 import jp.go.aist.rtm.RTC.buffer.BufferBase;
 import jp.go.aist.rtm.RTC.log.Logbuf;
 import jp.go.aist.rtm.RTC.port.publisher.PublisherBase;
@@ -157,6 +158,14 @@ public class OutPortPushConnector extends OutPortConnector {
 
         m_orb = ORBUtil.getOrb();
         
+        String marshaling_type = profile.properties.getProperty( "marshaling_type", "corba");
+        marshaling_type = profile.properties.getProperty( "out.marshaling_type", marshaling_type);
+        m_marshaling_type = marshaling_type.trim();
+
+        final SerializerFactory<CORBA_CdrSerializer,String> factory 
+            = SerializerFactory.instance();
+        m_serializer = factory.createObject(m_marshaling_type);
+
         onConnect();
 
     }
@@ -249,10 +258,28 @@ public class OutPortPushConnector extends OutPortConnector {
         }
 
         // normal case
-        OutPort out = (OutPort)m_outport;
+        //OutPort out = (OutPort)m_outport;
         OutputStream cdr 
             = new EncapsOutputStreamExt(m_orb,m_isLittleEndian);
-        out.write_stream(data,cdr); 
+        //out.write_stream(data,cdr); 
+
+	m_serializer.isLittleEndian(m_isLittleEndian);
+        SerializeReturnCode ser_ret = m_serializer.serialize(data,cdr);
+        if(ser_ret.equals(SerializeReturnCode.SERIALIZE_NOT_SUPPORT_ENDIAN)){
+            rtcout.println(Logbuf.ERROR,
+                "write(): endian %s is not support. "+ m_isLittleEndian);
+            return ReturnCode.UNKNOWN_ERROR;
+        }
+	else if(ser_ret.equals(SerializeReturnCode.SERIALIZE_ERROR)){
+            rtcout.println(Logbuf.ERROR,"unkown error." );
+            return ReturnCode.UNKNOWN_ERROR;
+        }
+	else if(ser_ret.equals(SerializeReturnCode.SERIALIZE_NOTFOUND)){
+            rtcout.println(Logbuf.ERROR,
+                "write(): serializer %s is not support. "+
+                m_marshaling_type);
+            return ReturnCode.UNKNOWN_ERROR;
+        }
         return m_publisher.write(cdr,0,0);
     }
 
@@ -294,6 +321,12 @@ public class OutPortPushConnector extends OutPortConnector {
             bfactory.deleteObject(m_buffer);
         }
         m_buffer = null;
+
+        if(m_serializer != null){
+            rtcout.println(Logbuf.DEBUG, "delete serializer");
+        }
+        m_serializer = null;
+
         rtcout.println(Logbuf.TRACE, "disconnect() done");
         return ReturnCode.PORT_OK;
     
@@ -424,8 +457,10 @@ public class OutPortPushConnector extends OutPortConnector {
     /**
      * <p> A reference to a ConnectorListener </p>
      */
-    ConnectorListeners m_listeners;
+    private ConnectorListeners m_listeners;
 
+    private String m_marshaling_type;
+    private CORBA_CdrSerializer m_serializer;
 
 }
 
