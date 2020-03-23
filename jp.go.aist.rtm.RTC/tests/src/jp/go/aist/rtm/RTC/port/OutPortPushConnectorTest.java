@@ -443,6 +443,7 @@ public class OutPortPushConnectorTest extends TestCase {
                       new PeriodicTask());
 
           CdrRingBufferMock2.CdrRingBufferMock2Init();
+          CORBA_CdrSerializer.CORBA_CdrSerializerInit();
       }
   		
       /**

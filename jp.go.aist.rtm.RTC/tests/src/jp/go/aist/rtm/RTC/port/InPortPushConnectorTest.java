@@ -213,6 +213,8 @@ public class InPortPushConnectorTest extends TestCase {
         }
 
         CdrRingBufferMock.CdrRingBufferMockInit();
+
+        CORBA_CdrSerializer.CORBA_CdrSerializerInit();
     }
 		
     /**
@@ -352,6 +354,7 @@ public class InPortPushConnectorTest extends TestCase {
         //connector = new InPortPushConnector(profile_new, provider, pbuffer);
         connector = new InPortPushConnector(profile_new, provider, listeners, pbuffer);
 
+        assertNotNull("connector is null.",connector);
         InputStream cdr = null;
         DataRef<InputStream> cdrref = new DataRef<InputStream>(cdr);
         int read_counter =  RingBufferMock.m_mock_logger.countLog("RingBufferMock.read");
