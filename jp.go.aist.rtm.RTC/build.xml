@@ -1,6 +1,6 @@
 <project name="OpenRTM-aist-Java" default="jar">
 
-	<property name="version" value="1.2.1"/>
+	<property name="version" value="1.2.2"/>
 	<property name="short_ver" value="1.2"/>
 	<property name="target.name" value="OpenRTM-aist-${version}"/>
 
