@@ -77,6 +77,31 @@ public class ManagerConfigTest extends TestCase {
         assertFalse( properties.getProperty("os.arch").equals(""));
         assertFalse( properties.getProperty("os.hostname").equals(""));
         assertFalse( properties.getProperty("manager.pid").equals(""));
+
+        String value = properties.getProperty("manager.supported_languages");
+        String[] langs = value.split(",");
+        for(int ic=0;ic<langs.length;++ic) {
+            langs[ic] = langs[ic].trim();
+        }
+        java.util.Properties sysInfo = System.getProperties();
+        String osName = sysInfo.getProperty("os.name").toLowerCase();
+        if(osName.startsWith("windows")){
+            assertEquals("C++", langs[0]);
+            assertEquals("Python", langs[1]);
+            assertEquals("Java", langs[2]);
+        }
+        else if(osName.startsWith("linux")){
+            assertEquals("C++", langs[0]);
+            assertEquals("Python", langs[1]);
+            assertEquals("Python3", langs[2]);
+            assertEquals("Java", langs[3]);
+        }
+        else{
+            assertEquals("C++", langs[0]);
+            assertEquals("Python", langs[1]);
+            assertEquals("Python3", langs[2]);
+            assertEquals("Java", langs[3]);
+        }
     }
 
     /**
