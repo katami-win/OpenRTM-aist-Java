@@ -25,7 +25,7 @@ Description: OpenRTM-aist, RT-Middleware distributed by AIST
 Package: openrtm-aist-java-example
 Architecture: any
 Multi-Arch: same
-Depends: openrtm-aist
+Depends: openrtm-aist, openrtm-aist-java
 Description: OpenRTM-aist-Java examples
  Example components and sources of OpenRTM-aist.
 
