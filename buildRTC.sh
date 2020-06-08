@@ -3,6 +3,22 @@
 #
 
 #------------------------------------------------------------
+# find_ros_jar
+#
+# Searches and adds jar files for ROS.
+#------------------------------------------------------------
+find_ros_jar()
+{
+    if test ! "x$ROS_MAVEN_PATH" = "x" ; then
+        for file in `find $ROS_MAVEN_PATH -name '*.jar'`;do
+            jar_files=$jar_files":"$file
+        done
+        echo "------------------------------------------------------------"
+        echo $jar_files
+        echo "------------------------------------------------------------"
+    fi
+}
+#------------------------------------------------------------
 # find_anthome
 #
 # This function estimate ANT_HOME from ant, which usually
@@ -34,6 +50,7 @@ echo "Environment variables:"
 echo "ANT_HOME: $ANT_HOME"
 echo "------------------------------------------------------------"
 
+find_ros_jar
 
 if test $# -eq 0 ; then
     var_for="buildAllLinux"
@@ -45,7 +62,8 @@ fi
 #
 #
 cd jp.go.aist.rtm.RTC
-ant $var_for -lib $ANT_HOME/lib
+#ant $var_for -lib $ANT_HOME/lib
+ant $var_for -lib $ANT_HOME/lib -lib $jar_files
 if [ $? -ne 0 ];
 then 
     exit 1
